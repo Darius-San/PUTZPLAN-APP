@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn {
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            color: white;
+            display: block;
+            width: 300px;
+        }
+        .btn-primary { background: #3b82f6; }
+        .btn-success { background: #10b981; }
+        .btn-debug { background: #ef4444; }
+        h1 { text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Button Test - Einfache Version</h1>
+    
+    <button class="btn btn-success" onclick="testFunction1()">
+        Test Button 1 - Neue WG
+    </button>
+    
+    <button class="btn btn-primary" onclick="testFunction2()">
+        Test Button 2 - Werthi WG
+    </button>
+    
+    <button class="btn btn-debug" onclick="testFunction3()">
+        Test Button 3 - Debug
+    </button>
+    
+    <div id="output" style="margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+        <h3>Output:</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+
+        function testFunction1() {
+            log('✅ Button 1 funktioniert! (Neue WG erstellen)');
+            alert('Button 1 wurde geklickt!');
+        }
+
+        function testFunction2() {
+            log('✅ Button 2 funktioniert! (Werthi WG laden)');
+            alert('Button 2 wurde geklickt!');
+        }
+
+        function testFunction3() {
+            log('✅ Button 3 funktioniert! (Debug)');
+            alert('Button 3 wurde geklickt!');
+        }
+
+        // Globale Funktionen exportieren (wie in der Hauptapp)
+        window.testFunction1 = testFunction1;
+        window.testFunction2 = testFunction2;
+        window.testFunction3 = testFunction3;
+
+        // Log beim Laden
+        log('🚀 Seite geladen - Buttons sollten funktionieren!');
+        
+        console.log('🌐 Test functions exported:', {
+            testFunction1: typeof window.testFunction1,
+            testFunction2: typeof window.testFunction2,
+            testFunction3: typeof window.testFunction3
+        });
+    </script>
+</body>
+</html>

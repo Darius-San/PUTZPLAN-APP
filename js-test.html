@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Syntax Check</title>
+</head>
+<body>
+    <h1>JavaScript Syntax Test</h1>
+    <button onclick="testBasic()">Basic Test</button>
+    <button onclick="alert('Direct alert test')">Direct Alert</button>
+    <div id="output"></div>
+
+    <script>
+        // Teste ob überhaupt JavaScript läuft
+        console.log('🚀 JavaScript lädt...');
+        
+        function testBasic() {
+            alert('Basic function works!');
+            document.getElementById('output').innerHTML = 'Function executed at ' + new Date();
+        }
+
+        // Test window export
+        window.testBasic = testBasic;
+        
+        console.log('✅ JavaScript loaded successfully');
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('output').innerHTML = 'DOM loaded at ' + new Date();
+        });
+    </script>
+</body>
+</html>

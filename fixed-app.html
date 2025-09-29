@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Putzplan App - Repariert</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .phase { display: none; }
+        .phase.active { display: block; }
+        .profile-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .profile-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        .member-input {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .member-input input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <h1><i class="fas fa-broom"></i> Putzplan App</h1>
+        <p>Einfache, funktionierende Version</p>
+        
+        <!-- Profil Auswahl -->
+        <div id="profileSelection" class="phase active">
+            <h2><i class="fas fa-users"></i> WG-Profile</h2>
+            <div id="profileList"></div>
+            <div id="noProfiles">
+                <p>Noch keine WG-Profile vorhanden.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0;">
+                    <button class="btn btn-success" onclick="createNewProfile()">
+                        <i class="fas fa-plus"></i> Neues Profil erstellen
+                    </button>
+                    <button class="btn" onclick="loadDemoProfile()">
+                        <i class="fas fa-home"></i> Demo WG laden
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Hauptfunktionen immer verfügbar -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                <h3><i class="fas fa-tools"></i> Alle Funktionen</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+                    <button class="btn" onclick="showTaskManager()">
+                        <i class="fas fa-tasks"></i> Task-Verwaltung
+                    </button>
+                    <button class="btn" onclick="showAbsenceManager()">
+                        <i class="fas fa-calendar-times"></i> Abwesenheiten
+                    </button>
+                    <button class="btn" onclick="showRatingSystem()">
+                        <i class="fas fa-star"></i> Bewertungen
+                    </button>
+                    <button class="btn" onclick="showStatistics()">
+                        <i class="fas fa-chart-bar"></i> Statistiken
+                    </button>
+                    <button class="btn" onclick="showSettings()">
+                        <i class="fas fa-cog"></i> Einstellungen
+                    </button>
+                    <button class="btn" onclick="testProfileLoad()" style="background: #f59e0b;">
+                        <i class="fas fa-bug"></i> Debug-Test
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- WG Setup -->
+        <div id="wgSetup" class="phase">
+            <h2><i class="fas fa-home"></i> WG einrichten</h2>
+            <div>
+                <label>WG-Name:</label>
+                <input type="text" id="wgNameInput" placeholder="z.B. Meine WG" value="Demo WG">
+            </div>
+            <div id="membersList">
+                <h3>Mitglieder:</h3>
+                <div class="member-input">
+                    <input type="text" placeholder="Name" value="Anna">
+                    <input type="email" placeholder="E-Mail" value="anna@demo.com">
+                </div>
+                <div class="member-input">
+                    <input type="text" placeholder="Name" value="Max">
+                    <input type="email" placeholder="E-Mail" value="max@demo.com">
+                </div>
+                <div class="member-input">
+                    <input type="text" placeholder="Name" value="Julia">
+                    <input type="email" placeholder="E-Mail" value="julia@demo.com">
+                </div>
+            </div>
+            <button class="btn" onclick="addMember()">+ Mitglied hinzufügen</button>
+            <button class="btn btn-success" onclick="finishSetup()">WG erstellen</button>
+            <button class="btn" onclick="showProfileSelection()">← Zurück</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="phase">
+            <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+            <div id="dashboardContent">
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h3 id="currentWgName">Demo WG</h3>
+                    <p>WG erfolgreich erstellt! 🎉</p>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                    <div style="text-align: center; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px;">👥</div>
+                        <div id="memberCount">3</div>
+                        <div>Mitglieder</div>
+                    </div>
+                    <div style="text-align: center; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px;">📋</div>
+                        <div id="taskCount">5</div>
+                        <div>Tasks</div>
+                    </div>
+                </div>
+                <button class="btn" onclick="showProfileSelection()">← Profile</button>
+                <button class="btn" onclick="alert('Feature wird entwickelt!')">Tasks verwalten</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Globale Variablen
+        let wgProfiles = {};
+        let currentProfile = null;
+        let navigationHistory = ['profileSelection']; // History für Zurück-Navigation
+
+        // App initialisieren
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ App geladen!');
+            loadProfiles();
+            updateProfileList();
+        });
+
+        function showPhase(phaseId) {
+            console.log('🔄 showPhase aufgerufen mit:', phaseId);
+            
+            // Alle Phasen verstecken
+            const allPhases = document.querySelectorAll('.phase');
+            console.log('🔍 Gefundene Phasen:', allPhases.length);
+            
+            allPhases.forEach((phase, index) => {
+                phase.classList.remove('active');
+                console.log(`🚫 Phase ${index + 1} versteckt: ${phase.id}`);
+            });
+            
+            // Gewählte Phase anzeigen
+            const targetPhase = document.getElementById(phaseId);
+            if (targetPhase) {
+                targetPhase.classList.add('active');
+                console.log('✅ Phase aktiviert:', phaseId);
+                
+                // Überprüfe ob die Phase wirklich sichtbar ist
+                setTimeout(() => {
+                    const isVisible = !targetPhase.classList.contains('active') ? 'NICHT SICHTBAR' : 'SICHTBAR';
+                    console.log(`👁️ Phase ${phaseId} ist: ${isVisible}`);
+                }, 100);
+            } else {
+                console.error('❌ Phase nicht gefunden:', phaseId);
+                console.log('🔍 Verfügbare Phasen:', Array.from(document.querySelectorAll('.phase')).map(p => p.id));
+            }
+        }
+
+        function showProfileSelection() {
+            showPhase('profileSelection');
+            updateProfileList();
+        }
+
+        function createNewProfile() {
+            console.log('🏠 Starte WG-Setup...');
+            addToHistory('wgSetup');
+            showPhase('wgSetup');
+        }
+
+        function loadDemoProfile() {
+            const demoProfile = {
+                id: 'demo_' + Date.now(),
+                name: 'Demo WG',
+                members: [
+                    {name: 'Anna', email: 'anna@demo.com'},
+                    {name: 'Max', email: 'max@demo.com'},
+                    {name: 'Julia', email: 'julia@demo.com'}
+                ],
+                created: new Date().toISOString()
+            };
+            
+            wgProfiles[demoProfile.id] = demoProfile;
+            currentProfile = demoProfile;
+            saveProfiles();
+            
+            document.getElementById('currentWgName').textContent = demoProfile.name;
+            document.getElementById('memberCount').textContent = demoProfile.members.length;
+            
+            addToHistory('dashboard');
+            showPhase('dashboard');
+            console.log('Demo-Profil geladen:', demoProfile);
+        }
+
+        function addMember() {
+            const membersList = document.getElementById('membersList');
+            const newMember = document.createElement('div');
+            newMember.className = 'member-input';
+            newMember.innerHTML = `
+                <input type="text" placeholder="Name">
+                <input type="email" placeholder="E-Mail">
+                <button onclick="this.parentElement.remove()" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 4px;">✕</button>
+            `;
+            membersList.appendChild(newMember);
+        }
+
+        function finishSetup() {
+            const wgName = document.getElementById('wgNameInput').value || 'Meine WG';
+            const memberInputs = document.querySelectorAll('#membersList .member-input');
+            
+            const members = [];
+            memberInputs.forEach(memberDiv => {
+                const inputs = memberDiv.querySelectorAll('input');
+                if (inputs[0] && inputs[0].value.trim()) {
+                    members.push({
+                        name: inputs[0].value.trim(),
+                        email: inputs[1] ? inputs[1].value.trim() : ''
+                    });
+                }
+            });
+
+            if (members.length === 0) {
+                alert('Bitte fügen Sie mindestens ein Mitglied hinzu!');
+                return;
+            }
+
+            const newProfile = {
+                id: 'wg_' + Date.now(),
+                name: wgName,
+                members: members,
+                created: new Date().toISOString()
+            };
+
+            wgProfiles[newProfile.id] = newProfile;
+            currentProfile = newProfile;
+            saveProfiles();
+
+            document.getElementById('currentWgName').textContent = newProfile.name;
+            document.getElementById('memberCount').textContent = newProfile.members.length;
+
+            addToHistory('dashboard');
+            showPhase('dashboard');
+            console.log('WG erstellt:', newProfile);
+        }
+
+        function updateProfileList() {
+            const profileList = document.getElementById('profileList');
+            const noProfiles = document.getElementById('noProfiles');
+            
+            const profileIds = Object.keys(wgProfiles);
+            
+            if (profileIds.length === 0) {
+                profileList.innerHTML = '';
+                noProfiles.style.display = 'block';
+                return;
+            }
+            
+            noProfiles.style.display = 'none';
+            
+            let html = '';
+            profileIds.forEach(profileId => {
+                const profile = wgProfiles[profileId];
+                html += `
+                    <div class="profile-card" onclick="loadProfile('${profileId}')">
+                        <h3>${profile.name}</h3>
+                        <p><i class="fas fa-users"></i> ${profile.members.length} Mitglieder</p>
+                        <p><i class="fas fa-calendar"></i> Erstellt: ${new Date(profile.created).toLocaleDateString()}</p>
+                    </div>
+                `;
+            });
+            
+            profileList.innerHTML = html;
+        }
+
+        function loadProfile(profileId) {
+            console.log('📂 loadProfile aufgerufen mit ID:', profileId);
+            console.log('🔍 Verfügbare Profile:', Object.keys(wgProfiles));
+            console.log('🔍 Angefordertes Profil:', wgProfiles[profileId]);
+            
+            const profile = wgProfiles[profileId];
+            if (!profile) {
+                console.error('❌ Profil nicht gefunden! ProfileId:', profileId);
+                alert('Profil nicht gefunden: ' + profileId);
+                return;
+            }
+            
+            try {
+                currentProfile = profile;
+                console.log('✅ Profil-Objekt gesetzt:', currentProfile);
+                
+                // Dashboard-Elemente aktualisieren
+                const nameElement = document.getElementById('currentWgName');
+                const countElement = document.getElementById('memberCount');
+                
+                if (nameElement) {
+                    nameElement.textContent = profile.name;
+                    console.log('✅ WG-Name gesetzt:', profile.name);
+                } else {
+                    console.error('❌ currentWgName Element nicht gefunden!');
+                }
+                
+                if (countElement) {
+                    countElement.textContent = profile.members.length;
+                    console.log('✅ Mitglieder-Anzahl gesetzt:', profile.members.length);
+                } else {
+                    console.error('❌ memberCount Element nicht gefunden!');
+                }
+                
+                // Zum Dashboard wechseln
+                console.log('🏠 Wechsle zum Dashboard...');
+                addToHistory('dashboard');
+                showPhase('dashboard');
+                
+                console.log('✅ Profil erfolgreich geladen:', profile.name);
+                
+            } catch (error) {
+                console.error('❌ Fehler beim Laden des Profils:', error);
+                alert('Fehler beim Laden des Profils: ' + error.message);
+            }
+        }
+
+        function saveProfiles() {
+            try {
+                localStorage.setItem('wgProfiles', JSON.stringify(wgProfiles));
+                console.log('Profile gespeichert');
+            } catch (error) {
+                console.error('Fehler beim Speichern:', error);
+            }
+        }
+
+        function loadProfiles() {
+            try {
+                const stored = localStorage.getItem('wgProfiles');
+                if (stored) {
+                    wgProfiles = JSON.parse(stored);
+                    console.log('Profile geladen:', Object.keys(wgProfiles));
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden:', error);
+                wgProfiles = {};
+            }
+        }
+
+        function testProfileLoad() {
+            console.log('🧪 Starte Profil-Test...');
+            
+            // Erstelle Test-Profil falls keines existiert
+            if (Object.keys(wgProfiles).length === 0) {
+                console.log('📋 Erstelle Test-Profil...');
+                loadDemoProfile();
+                return;
+            }
+            
+            // Lade das erste verfügbare Profil
+            const firstProfileId = Object.keys(wgProfiles)[0];
+            console.log('🎯 Teste mit Profil-ID:', firstProfileId);
+            
+            // Direkte Dashboard-Anzeige zum Test
+            try {
+                showPhase('dashboard');
+                console.log('✅ Dashboard direkt angezeigt');
+            } catch (error) {
+                console.error('❌ Fehler beim Dashboard-Anzeigen:', error);
+            }
+            
+            // Dann Profil laden
+            setTimeout(() => {
+                try {
+                    loadProfile(firstProfileId);
+                } catch (error) {
+                    console.error('❌ Fehler beim Profil-Laden:', error);
+                }
+            }, 500);
+        }
+
+        // Neue Navigationsfunktionen
+        function showTaskManager() {
+            console.log('📋 Öffne Task-Manager...');
+            addToHistory('taskManager');
+            showPhase('taskManager');
+        }
+
+        function showAbsenceManager() {
+            console.log('📅 Öffne Abwesenheits-Manager...');
+            addToHistory('absenceManager');
+            showPhase('absenceManager');
+        }
+
+        function showRatingSystem() {
+            console.log('⭐ Öffne Bewertungs-System...');
+            addToHistory('ratingSystem');
+            showPhase('ratingSystem');
+        }
+
+        function showStatistics() {
+            console.log('📈 Öffne Statistiken...');
+            addToHistory('statistics');
+            showPhase('statistics');
+        }
+
+        function showSettings() {
+            console.log('⚙️ Öffne Einstellungen...');
+            addToHistory('settings');
+            showPhase('settings');
+        }
+
+        // Navigation History Management
+        function addToHistory(phaseId) {
+            // Füge aktuelle Phase zur History hinzu
+            const currentPhase = document.querySelector('.phase.active');
+            if (currentPhase && currentPhase.id !== phaseId) {
+                navigationHistory.push(currentPhase.id);
+            }
+            console.log('🗺 Navigation History:', navigationHistory);
+        }
+
+        function goBack() {
+            console.log('← Gehe zurück...');
+            console.log('🗺 Aktuelle History:', navigationHistory);
+            
+            if (navigationHistory.length > 0) {
+                const previousPhase = navigationHistory.pop();
+                console.log('✅ Zurück zu:', previousPhase);
+                showPhase(previousPhase);
+            } else {
+                console.log('🏠 Keine History - zurück zur Startseite');
+                showProfileSelection();
+            }
+        }
+
+        // Überschreibe showProfileSelection für History-Reset
+        function showProfileSelection() {
+            console.log('🏠 Zurück zur Startseite');
+            navigationHistory = ['profileSelection']; // History zurücksetzen
+            showPhase('profileSelection');
+            updateProfileList();
+        }
+
+        // Überschreibe createNewProfile für History
+        function createNewProfile() {
+            console.log('🏠 Starte WG-Setup...');
+            addToHistory('wgSetup');
+            showPhase('wgSetup');
+        }
+
+        // Überschreibe finishSetup für Navigation
+        const originalFinishSetup = finishSetup;
+        function finishSetup() {
+            const wgName = document.getElementById('wgNameInput').value || 'Meine WG';
+            const memberInputs = document.querySelectorAll('#membersList .member-input');
+            
+            const members = [];
+            memberInputs.forEach(memberDiv => {
+                const inputs = memberDiv.querySelectorAll('input');
+                if (inputs[0] && inputs[0].value.trim()) {
+                    members.push({
+                        name: inputs[0].value.trim(),
+                        email: inputs[1] ? inputs[1].value.trim() : ''
+                    });
+                }
+            });
+
+            if (members.length === 0) {
+                alert('Bitte fügen Sie mindestens ein Mitglied hinzu!');
+                return;
+            }
+
+            const newProfile = {
+                id: 'wg_' + Date.now(),
+                name: wgName,
+                members: members,
+                created: new Date().toISOString()
+            };
+
+            wgProfiles[newProfile.id] = newProfile;
+            currentProfile = newProfile;
+            saveProfiles();
+
+            document.getElementById('currentWgName').textContent = newProfile.name;
+            document.getElementById('memberCount').textContent = newProfile.members.length;
+
+            addToHistory('dashboard');
+            showPhase('dashboard');
+            console.log('WG erstellt:', newProfile);
+        }
+
+        // Überschreibe loadDemoProfile für Navigation
+        function loadDemoProfile() {
+            const demoProfile = {
+                id: 'demo_' + Date.now(),
+                name: 'Demo WG',
+                members: [
+                    {name: 'Anna', email: 'anna@demo.com'},
+                    {name: 'Max', email: 'max@demo.com'},
+                    {name: 'Julia', email: 'julia@demo.com'}
+                ],
+                created: new Date().toISOString()
+            };
+            
+            wgProfiles[demoProfile.id] = demoProfile;
+            currentProfile = demoProfile;
+            saveProfiles();
+            
+            document.getElementById('currentWgName').textContent = demoProfile.name;
+            document.getElementById('memberCount').textContent = demoProfile.members.length;
+            
+            addToHistory('dashboard');
+            showPhase('dashboard');
+            console.log('Demo-Profil geladen:', demoProfile);
+        }
+    </script>
+</body>
+</html>

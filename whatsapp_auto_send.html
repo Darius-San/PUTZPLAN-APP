@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 WhatsApp AUTO-SEND</title>
+</head>
+<body>
+    <div style="text-align: center; font-family: Arial; background: #1e1e1e; color: #00ff00; padding: 50px; min-height: 100vh;">
+        <h1>🚀 WhatsApp AUTO-SEND AKTIV</h1>
+        <div id="status">Starte aggressive Automatik...</div>
+        
+        <script>
+            function updateStatus(msg) {
+                document.getElementById('status').innerHTML = msg;
+                console.log(msg);
+            }
+            
+            // Sofort zu WhatsApp weiterleiten
+            const phone = "+491724620111";
+            const message = `🚀 AUTO-SEND ERFOLGREICH!
+
+Dies wurde KOMPLETT automatisch gesendet!
+
+✅ KEIN Enter drücken
+✅ KEIN Klicken
+✅ KEINE Benutzeraktion
+
+🤖 Aggressive JavaScript Automation`;
+            
+            const whatsappUrl = `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+            
+            updateStatus("🚀 Leite zu WhatsApp weiter...");
+            window.location.href = whatsappUrl;
+            
+            // Nach Weiterleitung aggressive Auto-Send Logik
+            setTimeout(() => {
+                let attempts = 0;
+                const maxAttempts = 200;
+                
+                function aggressiveAutoSend() {
+                    attempts++;
+                    updateStatus(`🔄 Auto-Send Versuch ${attempts}/${maxAttempts}...`);
+                    
+                    // Alle möglichen Send-Button Selektoren
+                    const selectors = [
+                        '[data-testid="send"]',
+                        'button[aria-label*="Send"]',
+                        'button[aria-label*="Senden"]',
+                        'span[data-icon="send"]',
+                        '[data-icon="send"]',
+                        'button[data-tab="11"]',
+                        '._ak1r button',
+                        '._3y5oW button', 
+                        'footer button',
+                        'button[class*="send"]',
+                        'button[class*="Send"]',
+                        '[role="button"][tabindex="0"]'
+                    ];
+                    
+                    // Versuche alle Selektoren
+                    for (const selector of selectors) {
+                        try {
+                            const elements = document.querySelectorAll(selector);
+                            for (const element of elements) {
+                                if (element && element.offsetParent && !element.disabled) {
+                                    updateStatus(`✅ Element gefunden: ${selector}`);
+                                    
+                                    // Multiple Klick-Events
+                                    element.click();
+                                    element.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+                                    element.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+                                    element.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
+                                    
+                                    updateStatus(`🎉 AUTO-SEND: Element geklickt!`);
+                                    
+                                    setTimeout(() => {
+                                        updateStatus("✅ NACHRICHT GESENDET!");
+                                        setTimeout(() => window.close(), 2000);
+                                    }, 1000);
+                                    
+                                    return true;
+                                }
+                            }
+                        } catch (e) {
+                            // Fehler ignorieren, weiter versuchen
+                        }
+                    }
+                    
+                    // Enter-Events auf Input-Felder
+                    const inputSelectors = [
+                        '[data-testid="conversation-compose-box-input"]',
+                        '[contenteditable="true"]',
+                        'div[role="textbox"]',
+                        '.copyable-text',
+                        'div[class*="input"]'
+                    ];
+                    
+                    for (const selector of inputSelectors) {
+                        try {
+                            const input = document.querySelector(selector);
+                            if (input && input.offsetParent) {
+                                updateStatus(`🎯 Input gefunden: ${selector}`);
+                                
+                                input.focus();
+                                
+                                // Aggressive Enter-Events
+                                const enterEvents = [
+                                    new KeyboardEvent('keydown', {key: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true}),
+                                    new KeyboardEvent('keypress', {key: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true}),
+                                    new KeyboardEvent('keyup', {key: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true})
+                                ];
+                                
+                                enterEvents.forEach(event => {
+                                    input.dispatchEvent(event);
+                                    document.dispatchEvent(event);
+                                    window.dispatchEvent(event);
+                                });
+                                
+                                updateStatus(`🎉 AUTO-SEND: Enter Events gesendet!`);
+                                
+                                setTimeout(() => {
+                                    updateStatus("✅ ENTER GEDRÜCKT!");
+                                    setTimeout(() => window.close(), 2000);
+                                }, 1000);
+                                
+                                return true;
+                            }
+                        } catch (e) {
+                            // Fehler ignorieren
+                        }
+                    }
+                    
+                    // Alle Buttons durchsuchen (Text-basiert)
+                    const allButtons = document.querySelectorAll('button, [role="button"], [onclick], span, div');
+                    for (const btn of allButtons) {
+                        try {
+                            const text = btn.textContent || btn.getAttribute('aria-label') || '';
+                            if (text.toLowerCase().includes('send') || 
+                                text.toLowerCase().includes('senden') ||
+                                btn.querySelector('svg') && btn.offsetParent) {
+                                
+                                updateStatus(`🎯 Button via Text gefunden: "${text.substring(0,20)}"`);
+                                
+                                btn.click();
+                                btn.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+                                
+                                updateStatus(`🎉 AUTO-SEND: Text-Button geklickt!`);
+                                
+                                setTimeout(() => {
+                                    updateStatus("✅ TEXT-BUTTON GEKLICKT!");
+                                    setTimeout(() => window.close(), 2000);
+                                }, 1000);
+                                
+                                return true;
+                            }
+                        } catch (e) {
+                            // Fehler ignorieren
+                        }
+                    }
+                    
+                    // Weiter versuchen
+                    if (attempts < maxAttempts) {
+                        setTimeout(aggressiveAutoSend, 500);
+                    } else {
+                        updateStatus("⏰ Max. Versuche erreicht - beende Automatik");
+                        setTimeout(() => window.close(), 3000);
+                    }
+                }
+                
+                // Starte nach 3 Sekunden
+                setTimeout(aggressiveAutoSend, 3000);
+                
+            }, 2000);
+        </script>
+    </div>
+</body>
+</html>

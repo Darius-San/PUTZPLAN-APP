@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Putzplan - Einfacher Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn { 
+            padding: 12px 24px; 
+            margin: 10px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px;
+            background: #3b82f6;
+            color: white;
+        }
+        .btn:hover { background: #2563eb; }
+        .debug { 
+            background: #f3f4f6; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 6px; 
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Putzplan App - Test Version</h1>
+        <p>Diese einfache Version sollte immer funktionieren.</p>
+        
+        <div class="debug">
+            <strong>System-Check:</strong><br>
+            <span id="systemInfo">Loading...</span>
+        </div>
+        
+        <button class="btn" onclick="testBasics()">🔧 Basis-Test starten</button>
+        <button class="btn" onclick="openMainApp()">🚀 Haupt-App öffnen</button>
+        <button class="btn" onclick="clearData()">🗑️ Daten löschen</button>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Sofortiger System-Check
+        document.getElementById('systemInfo').innerHTML = `
+            Browser: ${navigator.userAgent.split(' ').pop()}<br>
+            JavaScript: ✅ Funktioniert<br>
+            LocalStorage: ${typeof localStorage !== 'undefined' ? '✅' : '❌'} ${typeof localStorage !== 'undefined' ? 'Verfügbar' : 'Nicht verfügbar'}<br>
+            Zeit: ${new Date().toLocaleString()}
+        `;
+
+        function testBasics() {
+            const results = document.getElementById('testResults');
+            let html = '<div class="debug"><strong>Test-Ergebnisse:</strong><br>';
+            
+            // Test 1: LocalStorage
+            try {
+                localStorage.setItem('test', 'ok');
+                localStorage.removeItem('test');
+                html += '✅ LocalStorage: Funktioniert<br>';
+            } catch (e) {
+                html += '❌ LocalStorage: Fehler - ' + e.message + '<br>';
+            }
+            
+            // Test 2: CSS
+            html += '✅ CSS: Geladen (Sie sehen diese Seite)<br>';
+            
+            // Test 3: JavaScript Events
+            html += '✅ JavaScript Events: Funktionieren (Sie haben diesen Button geklickt)<br>';
+            
+            // Test 4: Prüfe vorhandene App-Daten
+            const appData = localStorage.getItem('wgProfiles');
+            html += `📁 App-Daten: ${appData ? 'Vorhanden' : 'Keine gefunden'}<br>`;
+            
+            html += '</div>';
+            results.innerHTML = html;
+        }
+
+        function openMainApp() {
+            window.location.href = 'debug-demo.html';
+        }
+
+        function clearData() {
+            if (confirm('Alle App-Daten löschen?')) {
+                localStorage.clear();
+                alert('✅ Daten gelöscht! Die Haupt-App sollte jetzt sauber starten.');
+            }
+        }
+
+        // Automatischer Test beim Laden
+        setTimeout(testBasics, 500);
+    </script>
+</body>
+</html>

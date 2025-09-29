@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Putzplan App - Setup Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 24px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .gradient-bg { 
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            text-align: center;
+        }
+        .avatar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 12px; 
+            margin: 20px 0;
+        }
+        .avatar-option { 
+            aspect-ratio: 1;
+            border: 3px solid #e5e7eb;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+        .avatar-option:hover { border-color: #3b82f6; transform: scale(1.05); }
+        .avatar-option.selected { border-color: #3b82f6; background: #eff6ff; }
+        .form-group { margin: 16px 0; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-group input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .form-group input:focus { outline: none; border-color: #3b82f6; }
+        .form-group select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+        }
+        .form-group select:focus { outline: none; border-color: #3b82f6; }
+        .btn { 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-secondary:hover { background: #d1d5db; }
+        .progress-bar { 
+            background: #e5e7eb; 
+            height: 8px; 
+            border-radius: 4px; 
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .progress-fill { 
+            background: #3b82f6; 
+            height: 100%; 
+            transition: width 0.3s;
+        }
+        .task-item { 
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .emoji-grid { 
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 8px; 
+            margin: 12px 0;
+        }
+        .emoji-option { 
+            aspect-ratio: 1;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .emoji-option:hover { border-color: #3b82f6; }
+        .emoji-option.selected { border-color: #3b82f6; background: #eff6ff; }
+        .rating-section { margin: 20px 0; }
+        .slider { width: 100%; margin: 8px 0; }
+        .slider-labels { display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; }
+        .preview { background: #eff6ff; padding: 16px; border-radius: 8px; margin-top: 16px; }
+        .hidden { display: none; }
+        .flex { display: flex; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 14px; }
+        .text-gray-600 { color: #6b7280; }
+        .font-bold { font-weight: 700; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mt-4 { margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Phase 0: WG Setup -->
+        <div id="phase0" class="phase">
+            <div class="card gradient-bg">
+                <h1 class="font-bold text-2xl mb-2">🏠 WG einrichten</h1>
+                <p>Zuerst die Grundlagen: Wie heißt eure WG und wer wohnt dort?</p>
+            </div>
+
+            <div class="card">
+                <div class="form-group">
+                    <label>Name der WG</label>
+                    <input type="text" id="wgName" placeholder="z.B. Villa Kunterbunt, WG Musterstraße..." />
+                </div>
+
+                <div class="form-group">
+                    <label>Wie viele Personen wohnen in der WG?</label>
+                    <select id="memberCount" onchange="updateMemberCount()">
+                        <option value="2">2 Personen</option>
+                        <option value="3" selected>3 Personen</option>
+                        <option value="4">4 Personen</option>
+                        <option value="5">5 Personen</option>
+                        <option value="6">6 Personen</option>
+                    </select>
+                </div>
+
+                <div id="memberNames">
+                    <h3 class="font-bold mb-4">Namen der WG-Mitglieder:</h3>
+                    <div class="form-group">
+                        <label>Person 1</label>
+                        <input type="text" class="member-name" placeholder="z.B. Anna" />
+                    </div>
+                    <div class="form-group">
+                        <label>Person 2</label>
+                        <input type="text" class="member-name" placeholder="z.B. Ben" />
+                    </div>
+                    <div class="form-group">
+                        <label>Person 3</label>
+                        <input type="text" class="member-name" placeholder="z.B. Clara" />
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="nextPhase(1)">Weiter zu Profilen →</button>
+            </div>
+        </div>
+
+        <!-- Phase 1: Individual User Creation -->
+        <div id="phase1" class="phase hidden">
+            <div class="card gradient-bg">
+                <h1 class="font-bold text-2xl mb-2">👤 Profil erstellen</h1>
+                <p>Jetzt erstellt jede Person ihr individuelles Profil:</p>
+                <div class="text-center mt-4">
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                        <span id="currentMember">Anna</span> ist dran
+                    </span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="font-bold mb-4">Wähle deinen Avatar</h2>
+                <div class="avatar-grid">
+                    <div class="avatar-option" onclick="selectAvatar(this, '😊')">😊</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '😎')">😎</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '🤓')">🤓</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '😴')">😴</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '🥳')">🥳</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '😇')">😇</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '🤔')">🤔</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '😋')">😋</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '🙃')">🙃</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '🤪')">🤪</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '😌')">😌</div>
+                    <div class="avatar-option" onclick="selectAvatar(this, '🤗')">🤗</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Dein Name</label>
+                    <input type="text" id="userName" placeholder="z.B. Anna" />
+                </div>
+
+                <div class="form-group">
+                    <label>E-Mail (optional)</label>
+                    <input type="email" id="userEmail" placeholder="anna@example.com" />
+                </div>
+
+                <button class="btn btn-primary" id="profileButton" onclick="nextPhase(2)">Profil speichern →</button>
+            </div>
+        </div>
+
+        <!-- Phase 2: Task Creation -->
+        <div id="phase2" class="phase hidden">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 40%"></div>
+            </div>
+
+            <div class="card gradient-bg">
+                <h1 class="font-bold text-2xl mb-2">📝 Tasks erstellen</h1>
+                <p>Welche Aufgaben fallen in der <strong id="wgNameDisplay">WG</strong> an?</p>
+            </div>
+
+            <div class="card">
+                <div id="taskList">
+                    <div class="task-item">
+                        <div class="form-group">
+                            <label>Task Name</label>
+                            <input type="text" placeholder="z.B. Küche putzen" />
+                        </div>
+                        <div class="form-group">
+                            <label>Beschreibung</label>
+                            <input type="text" placeholder="Spülmaschine ausräumen, Oberflächen wischen..." />
+                        </div>
+                        <div class="form-group">
+                            <label>⏳ Mindestabstand zwischen Ausführungen</label>
+                            <select class="min-days-select">
+                                <option value="0">Kann täglich gemacht werden</option>
+                                <option value="1">Mindestens 1 Tag Pause</option>
+                                <option value="2">Mindestens 2 Tage Pause</option>
+                                <option value="3" selected>Mindestens 3 Tage Pause</option>
+                                <option value="7">Mindestens 1 Woche Pause</option>
+                                <option value="14">Mindestens 2 Wochen Pause</option>
+                                <option value="30">Nur 1x pro Monat</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Emoji wählen</label>
+                            <div class="emoji-grid">
+                                <div class="emoji-option" onclick="selectEmoji(this, '🧹')">🧹</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🍽️')">🍽️</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🛁')">🛁</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🧽')">🧽</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🗑️')">🗑️</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🧴')">🧴</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '💡')">💡</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🌱')">🌱</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🔧')">🔧</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '📦')">📦</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '🏠')">🏠</div>
+                                <div class="emoji-option" onclick="selectEmoji(this, '✨')">✨</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="addTask()">+ Weiteren Task hinzufügen</button>
+                <button class="btn btn-primary mt-4" onclick="nextPhase(3)">Weiter zur Bewertung →</button>
+            </div>
+        </div>
+
+        <!-- Phase 3: Collaborative Rating -->
+        <div id="phase3" class="phase hidden">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 80%"></div>
+            </div>
+
+            <div class="card gradient-bg">
+                <h1 class="font-bold text-2xl mb-2">🎯 Task bewerten</h1>
+                <p><strong id="ratingMemberName">Anna</strong>, bewerte jeden Task nach deiner Einschätzung:</p>
+                <div class="text-center mt-4">
+                    <div class="bg-white bg-opacity-20 px-3 py-1 rounded-full inline-block mb-2">
+                        Person <span id="currentRatingMember">1</span> von <span id="totalMembers">3</span>
+                    </div>
+                    <br>
+                    <div class="bg-white bg-opacity-20 px-3 py-1 rounded-full inline-block">
+                        Task <span id="currentTask">1</span> von <span id="totalTasks">3</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="text-center mb-4">
+                    <div style="font-size: 48px; margin-bottom: 8px;" id="taskEmoji">🧹</div>
+                    <h2 class="font-bold" id="taskTitle">Küche putzen</h2>
+                    <p class="text-gray-600" id="taskDescription">Spülmaschine ausräumen, Oberflächen wischen...</p>
+                </div>
+
+                <div class="rating-section">
+                    <label class="font-bold mb-2">⏱️ Wie lange brauchst DU für diesen Task? (<span id="minutesValue">30</span> Min.)</label>
+                    <input type="range" class="slider" min="5" max="120" step="5" value="30" 
+                           onchange="updateValue('minutesValue', this.value)" />
+                    <div class="slider-labels">
+                        <span>5 Min</span>
+                        <span>2h</span>
+                    </div>
+                </div>
+
+                <div class="rating-section">
+                    <label class="font-bold mb-2">😤 Wie nervig ist dieser Task? (<span id="painValue">5</span>/10)</label>
+                    <input type="range" class="slider" min="1" max="10" value="5" 
+                           onchange="updateValue('painValue', this.value)" />
+                    <div class="slider-labels">
+                        <span>😊 Entspannt</span>
+                        <span>😤 Sehr nervig</span>
+                    </div>
+                </div>
+
+                <div class="rating-section">
+                    <label class="font-bold mb-2">⭐ Wie wichtig ist dieser Task? (<span id="importanceValue">5</span>/10)</label>
+                    <input type="range" class="slider" min="1" max="10" value="5" 
+                           onchange="updateValue('importanceValue', this.value)" />
+                    <div class="slider-labels">
+                        <span>Kann warten</span>
+                        <span>Sehr wichtig</span>
+                    </div>
+                </div>
+
+                <div class="rating-section">
+                    <label class="font-bold mb-2">📅 Wie oft pro Monat? (<span id="frequencyValue">4</span>x)</label>
+                    <input type="range" class="slider" min="1" max="30" value="4" 
+                           onchange="updateValue('frequencyValue', this.value)" />
+                    <div class="slider-labels">
+                        <span>1x</span>
+                        <span>Täglich</span>
+                    </div>
+                </div>
+
+                <div class="preview">
+                    <h3 class="font-bold mb-2">Deine Bewertung:</h3>
+                    <div class="flex justify-between">
+                        <span>Punkte pro Task: <strong id="taskPoints">38</strong></span>
+                        <span>Punkte pro Monat: <strong id="monthlyPoints">152</strong></span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between mt-4">
+                    <button class="btn btn-secondary" onclick="previousTask()">← Zurück</button>
+                    <button class="btn btn-primary" onclick="nextTask()">Nächster Task →</button>
+                </div>
+            </div>
+
+            <div class="card" style="background: #f0fdf4; border: 2px solid #bbf7d0;">
+                <div class="text-center">
+                    <h3 class="font-bold mb-2">ℹ️ Info</h3>
+                    <p class="text-sm">
+                        Später werden alle Bewertungen der WG-Mitglieder gemittelt.<br>
+                        Formel: (Minuten + Minuten × Pain × 0.1) × (Wichtigkeit ÷ 10)
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Phase -->
+        <div id="phaseComplete" class="phase hidden">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
+            </div>
+            
+            <div class="card gradient-bg">
+                <h1 class="font-bold text-2xl mb-2">🎉 Setup abgeschlossen!</h1>
+                <p>Eure WG ist bereit! Alle haben bewertet, die Tasks sind erstellt.</p>
+            </div>
+
+            <div class="card">
+                <h3 class="font-bold mb-4">📊 Finale Tasks mit Durchschnittsbewertungen:</h3>
+                <div id="taskSummary">
+                    <!-- Tasks werden hier dynamisch eingefügt -->
+                </div>
+                
+                <div class="card mt-4" style="background: #f0fdf4; border: 2px solid #bbf7d0;">
+                    <div class="text-center">
+                        <h3 class="font-bold mb-2">✅ Was passiert jetzt?</h3>
+                        <p class="text-sm mb-2">
+                            • Jeder kann Tasks abhaken und Punkte sammeln<br>
+                            • Fotos als Beweis hochladen<br>
+                            • Monatliche Auswertungen einsehen<br>
+                            • Push-Benachrichtigungen für überfällige Tasks
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between mt-4">
+                    <button class="btn btn-secondary" onclick="location.reload()">Neues Setup</button>
+                    <button class="btn btn-primary" onclick="alert('Demo: Zur echten App weiterleiten')">Zur App →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let wgName = '';
+        let memberNames = [];
+        let currentMemberIndex = 0;
+        let memberProfiles = [];
+        let selectedAvatar = '😊';
+        let tasks = [];
+        let currentTaskIndex = 0;
+        let currentRatingMemberIndex = 0;
+        let allRatings = {};
+
+        function selectAvatar(element, avatar) {
+            document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedAvatar = avatar;
+        }
+
+        function selectEmoji(element, emoji) {
+            const taskItem = element.closest('.task-item');
+            taskItem.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            taskItem.dataset.emoji = emoji;
+        }
+
+        function addTask() {
+            const taskList = document.getElementById('taskList');
+            const newTask = document.createElement('div');
+            newTask.className = 'task-item';
+            newTask.innerHTML = `
+                <div class="form-group">
+                    <label>Task Name</label>
+                    <input type="text" placeholder="z.B. Bad putzen" />
+                </div>
+                <div class="form-group">
+                    <label>Beschreibung</label>
+                    <input type="text" placeholder="Toilette, Dusche, Spiegel reinigen..." />
+                </div>
+                <div class="form-group">
+                    <label>⏳ Mindestabstand zwischen Ausführungen</label>
+                    <select class="min-days-select">
+                        <option value="0">Kann täglich gemacht werden</option>
+                        <option value="1">Mindestens 1 Tag Pause</option>
+                        <option value="2">Mindestens 2 Tage Pause</option>
+                        <option value="3" selected>Mindestens 3 Tage Pause</option>
+                        <option value="7">Mindestens 1 Woche Pause</option>
+                        <option value="14">Mindestens 2 Wochen Pause</option>
+                        <option value="30">Nur 1x pro Monat</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Emoji wählen</label>
+                    <div class="emoji-grid">
+                        <div class="emoji-option" onclick="selectEmoji(this, '🧹')">🧹</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🍽️')">🍽️</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🛁')">🛁</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🧽')">🧽</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🗑️')">🗑️</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🧴')">🧴</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '💡')">💡</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🌱')">🌱</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🔧')">🔧</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '📦')">📦</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '🏠')">🏠</div>
+                        <div class="emoji-option" onclick="selectEmoji(this, '✨')">✨</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="this.closest('.task-item').remove()">Task entfernen</button>
+            `;
+            taskList.appendChild(newTask);
+        }
+
+        function updateMemberCount() {
+            const count = parseInt(document.getElementById('memberCount').value);
+            const container = document.getElementById('memberNames');
+            
+            // Clear existing inputs
+            container.innerHTML = '<h3 class="font-bold mb-4">Namen der WG-Mitglieder:</h3>';
+            
+            // Add inputs for each member
+            for (let i = 1; i <= count; i++) {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label>Person ${i}</label>
+                        <input type="text" class="member-name" placeholder="z.B. ${['Anna', 'Ben', 'Clara', 'Diana', 'Emil', 'Fiona'][i-1]}" />
+                    </div>
+                `;
+            }
+        }
+
+        function nextPhase(phase) {
+            if (phase === 1) {
+                // WG Setup validieren
+                wgName = document.getElementById('wgName').value.trim();
+                if (!wgName) {
+                    alert('Bitte gib einen Namen für die WG ein!');
+                    return;
+                }
+                
+                memberNames = [];
+                document.querySelectorAll('.member-name').forEach(input => {
+                    if (input.value.trim()) {
+                        memberNames.push(input.value.trim());
+                    }
+                });
+                
+                if (memberNames.length === 0) {
+                    alert('Bitte gib mindestens einen Namen ein!');
+                    return;
+                }
+                
+                // Erste Person für Profil-Erstellung setzen
+                currentMemberIndex = 0;
+                document.getElementById('currentMember').textContent = memberNames[0];
+                document.getElementById('wgNameDisplay').textContent = wgName;
+            }
+
+            if (phase === 2) {
+                // Profil der aktuellen Person speichern
+                const userName = document.getElementById('userName').value.trim();
+                if (!userName) {
+                    alert('Bitte gib deinen Namen ein!');
+                    return;
+                }
+                
+                memberProfiles.push({
+                    name: userName,
+                    avatar: selectedAvatar,
+                    email: document.getElementById('userEmail').value.trim()
+                });
+                
+                // Nächste Person oder zu Tasks
+                currentMemberIndex++;
+                if (currentMemberIndex < memberNames.length) {
+                    // Nächste Person
+                    document.getElementById('currentMember').textContent = memberNames[currentMemberIndex];
+                    document.getElementById('userName').value = memberNames[currentMemberIndex];
+                    document.getElementById('userEmail').value = '';
+                    
+                    // Button-Text anpassen
+                    const isLast = currentMemberIndex === memberNames.length - 1;
+                    document.getElementById('profileButton').textContent = isLast ? 'Zu Tasks →' : 'Nächste Person →';
+                    
+                    // Avatar zurücksetzen
+                    document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+                    document.querySelector('.avatar-option').click();
+                    return; // Bleibe in Phase 1
+                } else {
+                    // Alle Personen erfasst, zu Tasks
+                    phase = 2;
+                }
+            }
+
+            if (phase === 3) {
+                // Sammle Tasks
+                tasks = [];
+                document.querySelectorAll('.task-item').forEach(item => {
+                    const title = item.querySelector('input[placeholder*="z.B."]').value;
+                    const description = item.querySelector('input[placeholder*="..."]').value;
+                    const emoji = item.dataset.emoji || '🧹';
+                    const minDays = parseInt(item.querySelector('.min-days-select').value) || 0;
+                    
+                    if (title.trim()) {
+                        tasks.push({ 
+                            title: title.trim(), 
+                            description: description.trim(), 
+                            emoji,
+                            minDaysBetween: minDays
+                        });
+                    }
+                });
+
+                if (tasks.length === 0) {
+                    alert('Bitte füge mindestens einen Task hinzu!');
+                    return;
+                }
+
+                // Rating Setup
+                currentRatingMemberIndex = 0;
+                currentTaskIndex = 0;
+                allRatings = {};
+                
+                document.getElementById('totalTasks').textContent = tasks.length;
+                document.getElementById('totalMembers').textContent = memberProfiles.length;
+                document.getElementById('ratingMemberName').textContent = memberProfiles[0].name;
+                document.getElementById('currentRatingMember').textContent = 1;
+                
+                loadTask(0);
+            }
+
+            document.querySelectorAll('.phase').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`phase${phase}`).classList.remove('hidden');
+        }
+
+        function loadTask(index) {
+            const task = tasks[index];
+            document.getElementById('taskEmoji').textContent = task.emoji;
+            document.getElementById('taskTitle').textContent = task.title;
+            document.getElementById('taskDescription').textContent = task.description;
+            document.getElementById('currentTask').textContent = index + 1;
+            
+            // Reset sliders
+            document.querySelectorAll('.slider').forEach(slider => {
+                slider.value = slider.defaultValue;
+                updateValue(slider.onchange.toString().match(/updateValue\('(\w+)'/)[1], slider.value);
+            });
+            
+            updateTaskPoints();
+        }
+
+        function updateValue(elementId, value) {
+            document.getElementById(elementId).textContent = value;
+            updateTaskPoints();
+        }
+
+        function updateTaskPoints() {
+            const minutes = parseInt(document.getElementById('minutesValue').textContent);
+            const pain = parseInt(document.getElementById('painValue').textContent);
+            const importance = parseInt(document.getElementById('importanceValue').textContent);
+            const frequency = parseInt(document.getElementById('frequencyValue').textContent);
+            
+            const points = Math.round((minutes + minutes * pain * 0.1) * (importance / 10));
+            const monthlyPoints = points * frequency;
+            
+            document.getElementById('taskPoints').textContent = points;
+            document.getElementById('monthlyPoints').textContent = monthlyPoints;
+        }
+
+        function previousTask() {
+            if (currentTaskIndex > 0) {
+                saveCurrentRating();
+                currentTaskIndex--;
+                loadTask(currentTaskIndex);
+            }
+        }
+
+        function nextTask() {
+            saveCurrentRating();
+            
+            if (currentTaskIndex < tasks.length - 1) {
+                // Nächster Task für gleiche Person
+                currentTaskIndex++;
+                loadTask(currentTaskIndex);
+            } else {
+                // Alle Tasks für diese Person bewertet
+                currentRatingMemberIndex++;
+                if (currentRatingMemberIndex < memberProfiles.length) {
+                    // Nächste Person
+                    currentTaskIndex = 0;
+                    document.getElementById('ratingMemberName').textContent = memberProfiles[currentRatingMemberIndex].name;
+                    document.getElementById('currentRatingMember').textContent = currentRatingMemberIndex + 1;
+                    loadTask(0);
+                } else {
+                    // Alle Personen haben alle Tasks bewertet
+                    showCompletion();
+                }
+            }
+        }
+
+        function saveCurrentRating() {
+            const memberName = memberProfiles[currentRatingMemberIndex].name;
+            const taskTitle = tasks[currentTaskIndex].title;
+            
+            if (!allRatings[memberName]) {
+                allRatings[memberName] = {};
+            }
+            
+            allRatings[memberName][taskTitle] = {
+                minutes: parseInt(document.getElementById('minutesValue').textContent),
+                pain: parseInt(document.getElementById('painValue').textContent),
+                importance: parseInt(document.getElementById('importanceValue').textContent),
+                frequency: parseInt(document.getElementById('frequencyValue').textContent)
+            };
+        }
+
+        function showCompletion() {
+            document.querySelectorAll('.phase').forEach(el => el.classList.add('hidden'));
+            document.getElementById('phaseComplete').classList.remove('hidden');
+            
+            const summary = document.getElementById('taskSummary');
+            
+            // Berechne Durchschnittswerte für jeden Task
+            summary.innerHTML = `
+                <div class="card mb-4" style="background: #eff6ff;">
+                    <h3 class="font-bold mb-2">🏠 ${wgName}</h3>
+                    <p>Mit ${memberProfiles.length} Mitgliedern: ${memberProfiles.map(p => p.name).join(', ')}</p>
+                </div>
+            ` + tasks.map(task => {
+                // Sammle alle Bewertungen für diesen Task
+                const taskRatings = [];
+                Object.keys(allRatings).forEach(memberName => {
+                    if (allRatings[memberName][task.title]) {
+                        taskRatings.push(allRatings[memberName][task.title]);
+                    }
+                });
+                
+                if (taskRatings.length === 0) return '';
+                
+                // Berechne Durchschnitte
+                const avgMinutes = Math.round(taskRatings.reduce((sum, r) => sum + r.minutes, 0) / taskRatings.length);
+                const avgPain = Math.round(taskRatings.reduce((sum, r) => sum + r.pain, 0) / taskRatings.length);
+                const avgImportance = Math.round(taskRatings.reduce((sum, r) => sum + r.importance, 0) / taskRatings.length);
+                const avgFrequency = Math.round(taskRatings.reduce((sum, r) => sum + r.frequency, 0) / taskRatings.length);
+                
+                const points = Math.round((avgMinutes + avgMinutes * avgPain * 0.1) * (avgImportance / 10));
+                const monthlyPoints = points * avgFrequency;
+                
+                // Mindestabstand Text
+                let minDaysText = '';
+                if (task.minDaysBetween === 0) {
+                    minDaysText = '🔄 Täglich möglich';
+                } else if (task.minDaysBetween === 1) {
+                    minDaysText = '🔄 Min. 1 Tag Pause';
+                } else if (task.minDaysBetween === 7) {
+                    minDaysText = '🔄 Min. 1 Woche Pause';
+                } else if (task.minDaysBetween === 14) {
+                    minDaysText = '🔄 Min. 2 Wochen Pause';
+                } else if (task.minDaysBetween === 30) {
+                    minDaysText = '🔄 Nur 1x/Monat';
+                } else {
+                    minDaysText = `🔄 Min. ${task.minDaysBetween} Tage Pause`;
+                }
+                
+                return `
+                    <div class="task-item">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span style="font-size: 24px; margin-right: 12px;">${task.emoji}</span>
+                                <div>
+                                    <strong>${task.title}</strong><br>
+                                    <small class="text-gray-600">${task.description}</small><br>
+                                    <small class="text-gray-600">⏱️ ${avgMinutes}min · 😤 ${avgPain}/10 · ⭐ ${avgImportance}/10 · 📅 ${avgFrequency}x/Monat</small><br>
+                                    <small class="text-gray-600">${minDaysText}</small>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div><strong>${points}</strong> Punkte</div>
+                                <div class="text-sm text-gray-600">${monthlyPoints}/Monat</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initialize first avatar selection
+        document.querySelector('.avatar-option').click();
+    </script>
+</body>
+</html>

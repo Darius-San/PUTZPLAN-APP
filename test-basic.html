@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Test</title>
+</head>
+<body>
+    <h1>JavaScript Test</h1>
+    
+    <button onclick="alert('Test 1 funktioniert!')">Test Button 1</button>
+    <br><br>
+    <button onclick="testFunction()">Test Button 2</button>
+    <br><br>
+    <button id="testBtn3">Test Button 3</button>
+    
+    <script>
+        console.log("Script wird geladen...");
+        
+        function testFunction() {
+            alert("Test Function funktioniert!");
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded");
+            
+            const btn3 = document.getElementById('testBtn3');
+            if (btn3) {
+                btn3.onclick = function() {
+                    alert("Event Listener funktioniert!");
+                };
+                console.log("Event listener hinzugefügt");
+            }
+        });
+        
+        // Sofort-Test
+        alert("Script läuft sofort!");
+    </script>
+</body>
+</html>

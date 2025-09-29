@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+.env
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Chrome WebDriver
+chromedriver.exe
+geckodriver.exe
+
+# Local test files
+test_*.html
+debug_*.html
+temp_*.html
+
+# Node modules (if any)
+node_modules/

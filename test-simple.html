@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Test</title>
+</head>
+<body>
+    <h1>JavaScript Test</h1>
+    
+    <button onclick="testAlert()">🧪 Test Alert</button>
+    <button onclick="alert('Direkter Alert Test')">📢 Direkter Alert</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        console.log('JavaScript wird geladen...');
+        
+        function testAlert() {
+            alert('Test Alert funktioniert!');
+        }
+        
+        // Test ob DOM ready ist
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM ist bereit');
+            document.getElementById('output').innerHTML = '<p style="color: green;">✅ JavaScript und DOM funktionieren!</p>';
+        });
+        
+        // Sofortiger Test
+        console.log('Script Ende erreicht');
+    </script>
+</body>
+</html>

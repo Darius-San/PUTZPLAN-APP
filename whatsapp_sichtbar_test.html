@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 WhatsApp AUTO-SEND - SICHTBAR</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #00ff00;
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        
+        .big-title {
+            font-size: 32px;
+            text-align: center;
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            background: #001100;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-size: 18px;
+            box-shadow: 0 0 20px #00ff0050;
+        }
+        
+        .log {
+            background: #000033;
+            border: 1px solid #0066ff;
+            padding: 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: scroll;
+        }
+        
+        .success {
+            background: #003300;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        
+        .error {
+            background: #330000;
+            border: 2px solid #ff0000;
+            color: #ff0000;
+        }
+        
+        .progress {
+            background: #330033;
+            border: 2px solid #ff00ff;
+            color: #ff00ff;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px #00ff00; }
+            50% { box-shadow: 0 0 25px #00ff00; }
+            100% { box-shadow: 0 0 5px #00ff00; }
+        }
+        
+        .countdown {
+            font-size: 24px;
+            text-align: center;
+            color: #ffff00;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="big-title">🚀 WhatsApp AUTO-SEND - LIVE TEST</div>
+    
+    <div id="mainStatus" class="status">
+        ⏳ Initialisierung...
+    </div>
+    
+    <div id="countdown" class="countdown"></div>
+    
+    <div class="log" id="logArea">
+        📋 LOG wird hier angezeigt...<br>
+    </div>
+    
+    <div id="progressStatus" class="status progress">
+        🔄 Bereit zum Start...
+    </div>
+
+    <script>
+        let logArea = document.getElementById('logArea');
+        let mainStatus = document.getElementById('mainStatus');
+        let progressStatus = document.getElementById('progressStatus');
+        let countdownDiv = document.getElementById('countdown');
+        let attempts = 0;
+        let maxAttempts = 50; // Reduziert für bessere Sichtbarkeit
+        let startTime = Date.now();
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'success' ? '#00ff00' : type === 'error' ? '#ff0000' : type === 'warning' ? '#ffff00' : '#00ffff';
+            logArea.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span><br>`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateMainStatus(msg, className = 'status') {
+            mainStatus.innerHTML = msg;
+            mainStatus.className = `status ${className}`;
+        }
+        
+        function updateProgress(msg) {
+            progressStatus.innerHTML = msg;
+        }
+        
+        // Countdown und automatische Weiterleitung
+        let countdown = 5;
+        function startCountdown() {
+            if (countdown > 0) {
+                countdownDiv.innerHTML = `⏰ Auto-Start in ${countdown} Sekunden...`;
+                countdown--;
+                setTimeout(startCountdown, 1000);
+            } else {
+                countdownDiv.innerHTML = "🚀 STARTET JETZT!";
+                startWhatsAppAutomation();
+            }
+        }
+        
+        function startWhatsAppAutomation() {
+            updateMainStatus("🚀 STARTE WhatsApp AUTOMATION", "success");
+            log("🚀 WhatsApp Automation gestartet!", "success");
+            
+            const phone = "+491724620111";
+            const message = `🤖 AUTO-SEND TEST - SICHTBAR!
+
+✅ Diese Nachricht wird AUTOMATISCH gesendet!
+🔄 Automation läuft mit ${maxAttempts} Versuchen
+⏱️ Gestartet um ${new Date().toLocaleTimeString()}
+
+🎯 KEIN Enter drücken erforderlich!
+
+Powered by JavaScript Automation`;
+            
+            const whatsappUrl = `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+            
+            log(`📞 Ziel: ${phone}`, "info");
+            log(`📝 Nachricht: ${message.substring(0,50)}...`, "info");
+            log(`🌐 URL: ${whatsappUrl.substring(0,80)}...`, "info");
+            
+            updateMainStatus("🌐 WEITERLEITUNG ZU WHATSAPP...", "progress");
+            log("🌐 Leite zu WhatsApp Web weiter...", "warning");
+            
+            // Weiterleitung zu WhatsApp
+            setTimeout(() => {
+                window.location.href = whatsappUrl;
+            }, 2000);
+            
+            // Nach Weiterleitung Auto-Send starten
+            setTimeout(() => {
+                startAggressiveAutoSend();
+            }, 5000);
+        }
+        
+        function startAggressiveAutoSend() {
+            updateMainStatus("🤖 AGGRESSIVE AUTO-SEND GESTARTET", "success");
+            log("🤖 Starte aggressive Auto-Send Automation...", "success");
+            
+            function tryAutoSend() {
+                attempts++;
+                const elapsed = Math.round((Date.now() - startTime) / 1000);
+                
+                updateProgress(`🔄 Versuch ${attempts}/${maxAttempts} | Zeit: ${elapsed}s`);
+                log(`🔄 Auto-Send Versuch ${attempts}/${maxAttempts}`, "info");
+                
+                // Send-Button Selektoren (erweitert)
+                const sendSelectors = [
+                    '[data-testid="send"]',
+                    'button[aria-label*="Send"]',
+                    'button[aria-label*="Senden"]',
+                    'span[data-icon="send"]',
+                    '[data-icon="send"]',
+                    'button[data-tab="11"]',
+                    '._ak1r button',
+                    'footer button[class*="compose"]',
+                    'button[class*="send" i]',
+                    '[role="button"][tabindex="0"]'
+                ];
+                
+                let buttonFound = false;
+                
+                // Versuche alle Send-Button Selektoren
+                for (let i = 0; i < sendSelectors.length; i++) {
+                    const selector = sendSelectors[i];
+                    try {
+                        const buttons = document.querySelectorAll(selector);
+                        log(`🔍 Suche mit Selector ${i+1}/${sendSelectors.length}: ${selector}`, "info");
+                        
+                        for (const button of buttons) {
+                            if (button && button.offsetParent && !button.disabled) {
+                                log(`✅ SEND-BUTTON GEFUNDEN! Selector: ${selector}`, "success");
+                                updateMainStatus("✅ SEND-BUTTON GEFUNDEN - KLICKE AUTOMATISCH!", "success");
+                                
+                                // Mehrfaches Klicken mit verschiedenen Methoden
+                                button.click();
+                                button.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+                                button.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+                                button.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
+                                
+                                log(`🎉 AUTO-KLICK AUSGEFÜHRT! Button geklickt!`, "success");
+                                
+                                setTimeout(() => {
+                                    updateMainStatus("🎉 NACHRICHT AUTOMATISCH GESENDET!", "success");
+                                    log("🎉 ERFOLG: Nachricht automatisch gesendet!", "success");
+                                    setTimeout(() => {
+                                        log("🔚 Fenster schließt automatisch in 3 Sekunden...", "warning");
+                                        setTimeout(() => window.close(), 3000);
+                                    }, 2000);
+                                }, 1000);
+                                
+                                buttonFound = true;
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        log(`❌ Selector ${selector} Fehler: ${e.message}`, "error");
+                    }
+                }
+                
+                // Input-Field Enter-Events
+                if (!buttonFound) {
+                    const inputSelectors = [
+                        '[data-testid="conversation-compose-box-input"]',
+                        '[contenteditable="true"]',
+                        'div[role="textbox"]'
+                    ];
+                    
+                    for (const selector of inputSelectors) {
+                        try {
+                            const input = document.querySelector(selector);
+                            if (input && input.offsetParent) {
+                                log(`✅ INPUT-FIELD GEFUNDEN! Selector: ${selector}`, "success");
+                                updateMainStatus("✅ INPUT-FIELD GEFUNDEN - SENDE ENTER!", "success");
+                                
+                                input.focus();
+                                
+                                // Enter-Events
+                                const enterEvent = new KeyboardEvent('keydown', {
+                                    key: 'Enter',
+                                    keyCode: 13,
+                                    which: 13,
+                                    bubbles: true,
+                                    cancelable: true
+                                });
+                                
+                                input.dispatchEvent(enterEvent);
+                                document.dispatchEvent(enterEvent);
+                                
+                                log(`🎉 AUTO-ENTER AUSGEFÜHRT! Enter gedrückt!`, "success");
+                                
+                                setTimeout(() => {
+                                    updateMainStatus("🎉 ENTER AUTOMATISCH GEDRÜCKT!", "success");
+                                    log("🎉 ERFOLG: Enter automatisch gedrückt!", "success");
+                                    setTimeout(() => window.close(), 3000);
+                                }, 1000);
+                                
+                                buttonFound = true;
+                                return;
+                            }
+                        } catch (e) {
+                            log(`❌ Input ${selector} Fehler: ${e.message}`, "error");
+                        }
+                    }
+                }
+                
+                // Weiter versuchen oder beenden
+                if (attempts < maxAttempts && !buttonFound) {
+                    log(`⏳ Warte 1 Sekunde für nächsten Versuch...`, "warning");
+                    setTimeout(tryAutoSend, 1000);
+                } else if (attempts >= maxAttempts) {
+                    updateMainStatus("⏰ MAXIMUM ERREICHT - BEENDE AUTOMATION", "error");
+                    log(`⏰ ${maxAttempts} Versuche erreicht. Automation beendet.`, "error");
+                    log("💡 Falls nicht automatisch: Bitte manuell senden!", "warning");
+                    setTimeout(() => window.close(), 5000);
+                }
+            }
+            
+            // Erste Versuch nach kurzer Verzögerung
+            setTimeout(tryAutoSend, 2000);
+        }
+        
+        // Sofort starten
+        log("🚀 WhatsApp AUTO-SEND Test geladen", "success");
+        updateMainStatus("✅ AUTO-SEND TEST BEREIT", "success");
+        startCountdown();
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 WhatsApp Auto-Send Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        .test-button {
+            background: linear-gradient(45deg, #25D366, #128C7E);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+        }
+        .log-area {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group input {
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            width: 200px;
+            margin: 5px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 WhatsApp Auto-Send Tester</h1>
+        <p>Teste die automatische WhatsApp-Nachrichtenübertragung</p>
+        
+        <div class="input-group">
+            <input type="tel" id="testPhone" placeholder="Telefonnummer" value="+491724620111">
+            <input type="text" id="testMessage" placeholder="Test Nachricht" value="🤖 Auto-Send Test erfolgreich!">
+        </div>
+        
+        <button class="test-button" onclick="testWhatsAppAutoSend()">
+            📱 WhatsApp Auto-Send Test starten
+        </button>
+        
+        <button class="test-button" onclick="testDesktopMode()">
+            🖥️ Desktop Modus testen
+        </button>
+        
+        <button class="test-button" onclick="testMobileMode()">
+            📱 Mobile Modus testen
+        </button>
+        
+        <button class="test-button" onclick="clearLog()">
+            🗑️ Log leeren
+        </button>
+        
+        <div class="log-area" id="logOutput">
+            <div>🚀 WhatsApp Auto-Send Tester bereit...</div>
+            <div>ℹ️ Klicke einen Test-Button um zu beginnen</div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logOutput = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            logOutput.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('logOutput').innerHTML = '<div>🗑️ Log geleert...</div>';
+        }
+        
+        function testWhatsAppAutoSend() {
+            const phone = document.getElementById('testPhone').value;
+            const message = document.getElementById('testMessage').value;
+            
+            log('🚀 Starte WhatsApp Auto-Send Test...');
+            log(`📞 Telefon: ${phone}`);
+            log(`📝 Nachricht: ${message}`);
+            
+            // Simuliere die Auto-Send Funktion
+            sendAutomaticWhatsAppAlert(phone, message);
+        }
+        
+        function testDesktopMode() {
+            log('🖥️ Teste Desktop-Modus...');
+            
+            // Force Desktop Detection
+            Object.defineProperty(navigator, 'userAgent', {
+                get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'; }
+            });
+            
+            testWhatsAppAutoSend();
+        }
+        
+        function testMobileMode() {
+            log('📱 Teste Mobile-Modus...');
+            
+            // Force Mobile Detection  
+            Object.defineProperty(navigator, 'userAgent', {
+                get: function() { return 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'; }
+            });
+            
+            testWhatsAppAutoSend();
+        }
+        
+        // 🚀 AUTO-SEND FUNKTION (vereinfacht für Test)
+        function sendAutomaticWhatsAppAlert(phoneNumber, message) {
+            log('🔍 Erkenne Gerätetype...');
+            
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isTablet = /ipad|android.*tablet/i.test(userAgent);
+            
+            // Device Detection
+            if (isMobile && !isTablet) {
+                log('📱 MOBILE ERKANNT');
+                testMobileWhatsApp(phoneNumber, message);
+            } else if (isTablet) {
+                log('📱 TABLET ERKANNT');  
+                testTabletWhatsApp(phoneNumber, message);
+            } else {
+                log('🖥️ DESKTOP ERKANNT');
+                testDesktopWhatsApp(phoneNumber, message);
+            }
+        }
+        
+        function testMobileWhatsApp(phone, message) {
+            log('📱 Teste Mobile WhatsApp Integration...');
+            
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `whatsapp://send?phone=${phone}&text=${encodedMessage}`;
+            const fallbackUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+            
+            log(`🔗 WhatsApp URL: ${whatsappUrl}`);
+            
+            try {
+                // Versuche App zu öffnen
+                window.location.href = whatsappUrl;
+                log('✅ WhatsApp App URL aufgerufen');
+                
+                // Fallback nach 2 Sekunden
+                setTimeout(() => {
+                    log('🔄 Fallback zu wa.me...');
+                    window.open(fallbackUrl, '_blank');
+                }, 2000);
+                
+            } catch (error) {
+                log(`❌ Mobile Fehler: ${error.message}`);
+                window.open(fallbackUrl, '_blank');
+            }
+        }
+        
+        function testTabletWhatsApp(phone, message) {
+            log('📱 Teste Tablet WhatsApp Integration...');
+            
+            const encodedMessage = encodeURIComponent(message);
+            
+            // Tablet: Sowohl App als auch Web probieren
+            const appUrl = `whatsapp://send?phone=${phone}&text=${encodedMessage}`;
+            const webUrl = `https://web.whatsapp.com/send?phone=${phone}&text=${encodedMessage}`;
+            
+            log(`🔗 App URL: ${appUrl}`);
+            log(`🔗 Web URL: ${webUrl}`);
+            
+            try {
+                window.location.href = appUrl;
+                log('✅ WhatsApp App versucht');
+                
+                setTimeout(() => {
+                    log('🔄 Fallback zu WhatsApp Web...');
+                    window.open(webUrl, '_blank');
+                }, 3000);
+                
+            } catch (error) {
+                log(`❌ Tablet Fehler: ${error.message}`);
+                window.open(webUrl, '_blank');
+            }
+        }
+        
+        function testDesktopWhatsApp(phone, message) {
+            log('🖥️ Teste Desktop WhatsApp Integration...');
+            
+            const encodedMessage = encodeURIComponent(message);
+            const webUrl = `https://web.whatsapp.com/send?phone=${phone}&text=${encodedMessage}`;
+            
+            log(`🔗 WhatsApp Web URL: ${webUrl}`);
+            
+            try {
+                const whatsappWindow = window.open(webUrl, 'whatsapp_test', 'width=1200,height=800');
+                
+                if (whatsappWindow) {
+                    log('✅ WhatsApp Web Fenster geöffnet');
+                    log('⏱️ Auto-Send startet in 6 Sekunden...');
+                    
+                    // Auto-Send Test
+                    setTimeout(() => {
+                        log('🤖 Starte Auto-Send Test...');
+                        testAutoSendInWindow(whatsappWindow);
+                    }, 6000);
+                    
+                } else {
+                    log('❌ Popup blockiert!');
+                    log(`🔗 Manuell öffnen: ${webUrl}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Desktop Fehler: ${error.message}`);
+            }
+        }
+        
+        function testAutoSendInWindow(whatsappWindow) {
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const tryAutoSend = () => {
+                attempts++;
+                log(`🎯 Auto-Send Versuch ${attempts}/${maxAttempts}`);
+                
+                try {
+                    // Versuche JavaScript Injection
+                    const testCode = `
+                        console.log('🤖 Auto-Send Test Code ausgeführt');
+                        
+                        const sendButtons = document.querySelectorAll('[data-icon="send"]');
+                        if (sendButtons.length > 0) {
+                            console.log('🎯 Send-Button gefunden!');
+                            sendButtons[0].click();
+                            console.log('✅ Auto-Click ausgeführt!');
+                        } else {
+                            console.log('❌ Kein Send-Button gefunden');
+                        }
+                    `;
+                    
+                    whatsappWindow.eval(testCode);
+                    log('💉 JavaScript Code erfolgreich injiziert');
+                    
+                } catch (error) {
+                    log(`❌ Injection blockiert: ${error.message}`);
+                    
+                    // PostMessage Fallback
+                    try {
+                        whatsappWindow.postMessage({
+                            type: 'WHATSAPP_AUTO_SEND',
+                            action: 'TEST_CLICK'
+                        }, '*');
+                        log('📨 PostMessage Fallback gesendet');
+                    } catch (msgError) {
+                        log(`❌ PostMessage auch blockiert: ${msgError.message}`);
+                    }
+                }
+                
+                if (attempts < maxAttempts) {
+                    setTimeout(tryAutoSend, 2000);
+                } else {
+                    log('🏁 Auto-Send Tests beendet');
+                    log('ℹ️ Browser-Sicherheit kann Auto-Send verhindern');
+                }
+            };
+            
+            tryAutoSend();
+        }
+        
+        // Initial Log
+        log('🚀 WhatsApp Auto-Send Tester geladen');
+        log(`🌐 User Agent: ${navigator.userAgent}`);
+        log(`📱 Mobile Detection: ${/android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase())}`);
+    </script>
+</body>
+</html>
