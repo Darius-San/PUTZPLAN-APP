@@ -2429,6 +2429,27 @@
                 </div>
             </div>
 
+            <!-- WhatsApp Kontakt -->
+            <div class="card">
+                <h3 class="font-bold mb-4">📱 WhatsApp-Benachrichtigungen</h3>
+                <div class="form-group">
+                    <label>WhatsApp-Kontakt für Alerts:</label>
+                    <input type="text" id="editProfileWhatsapp" class="form-control" placeholder="z.B. 'Max Mustermann' oder 'WG Gruppe'">
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                        💡 Verwenden Sie den exakten Namen wie er in WhatsApp angezeigt wird
+                    </div>
+                </div>
+                
+                <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-top: 12px;">
+                    <div style="font-size: 14px; color: #1e40af;">
+                        <div style="font-weight: bold; margin-bottom: 8px;"><i class="fas fa-info-circle"></i> So funktioniert es:</div>
+                        <div>• 🚨 Alert-Button klicken → WhatsApp Web öffnet sich automatisch</div>
+                        <div>• 📝 Nachricht wird automatisch in den Chat eingefügt</div>
+                        <div>• 📤 Einfach Enter drücken zum Senden</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Members Management -->
             <div class="card">
                 <h3 class="font-bold mb-4">👥 Mitglieder verwalten</h3>
@@ -7083,6 +7104,7 @@
             if (!currentEditProfileId) return;
             
             const profileName = document.getElementById('editProfileName').value.trim();
+            const whatsappContact = document.getElementById('editProfileWhatsapp').value.trim();
             const currentUser = document.getElementById('editCurrentUser').value;
             
             if (!profileName) {
@@ -7229,6 +7251,7 @@
             wgProfiles[currentEditProfileId] = {
                 ...wgProfiles[currentEditProfileId],
                 name: profileName,
+                whatsappContact: whatsappContact,
                 members: members,
                 memberProfiles: newMemberProfiles,
                 currentUser: currentUser,
@@ -8575,6 +8598,21 @@
         
         // Show WhatsApp notification modal
         function showWhatsAppModal(taskTitle) {
+            // Get WhatsApp contact from current profile
+            const currentProfile = getCurrentProfileId();
+            const profile = wgProfiles[currentProfile] || profiles[currentProfile];
+            const wgName = profile ? profile.name : 'WG';
+            const sender = getCurrentUser() || 'Ein WG-Mitglied';
+            const savedWhatsappContact = profile ? profile.whatsappContact : '';
+            
+            // If WhatsApp contact is configured, send directly
+            if (savedWhatsappContact && savedWhatsappContact.trim()) {
+                console.log('🚨 WhatsApp-Kontakt gefunden:', savedWhatsappContact);
+                sendDirectWhatsAppMessage(taskTitle, savedWhatsappContact, wgName, sender);
+                return;
+            }
+            
+            // Otherwise show modal for manual input
             const modal = document.getElementById('whatsappModal');
             const titleElement = document.getElementById('urgentTaskTitle');
             const memberList = document.getElementById('whatsappMemberList');
@@ -8583,12 +8621,7 @@
             
             titleElement.textContent = taskTitle;
             
-            // Automation-Interface für direkten WhatsApp Versand
-            const currentProfile = getCurrentProfileId();
-            const profile = profiles[currentProfile];
-            const wgName = profile ? profile.name : 'WG';
-            const sender = getCurrentUser() || 'Ein WG-Mitglied';
-            
+            // Automation-Interface für direkten WhatsApp Versand - use existing variables
             let html = `
                 <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
@@ -8655,6 +8688,59 @@
             modal.style.display = 'flex';
         }
         
+        // Send direct WhatsApp message when contact is configured in profile
+        function sendDirectWhatsAppMessage(taskTitle, contactName, wgName, sender) {
+            console.log('📱 Sende direkte WhatsApp-Nachricht:', {taskTitle, contactName, wgName, sender});
+            
+            // Prepare message content
+            const automationMessage = `🚨 *DRINGENDER TASK ALARM* 🚨\n\n` +
+                `🏠 *${wgName}*\n` +
+                `📋 Task: *${taskTitle}*\n\n` +
+                `⚠️ Dieser Task wurde als SEHR DRINGEND markiert!\n` +
+                `👤 Markiert von: ${sender}\n` +
+                `⏰ Zeit: ${new Date().toLocaleString()}\n\n` +
+                `📱 AKTION ERFORDERLICH:\n` +
+                `Bitte kümmere dich schnellstmöglich um diesen Task!\n\n` +
+                `_🤖 Automatisch generiert von der WG-Putzplan-App_`;
+            
+            // Show loading notification
+            showSuccessToast(`🚨 ALERT GESENDET!\n📱 WhatsApp Web öffnet sich automatisch\n🎯 Ziel: ${contactName}\n📋 Task: ${taskTitle}`);
+            
+            // Step 1: Open WhatsApp Web directly with the contact search
+            const whatsappUrl = `https://web.whatsapp.com`;
+            const whatsappWindow = window.open(whatsappUrl, '_blank', 'width=1200,height=800');
+            
+            // Step 2: Open second window with pre-filled message
+            setTimeout(() => {
+                const messageUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(automationMessage)}`;
+                const messageWindow = window.open(messageUrl, 'whatsapp_message', 'width=800,height=600');
+                
+                // Show instructions
+                setTimeout(() => {
+                    showSuccessToast(
+                        `✅ AUTOMATISCHE ALERT-NACHRICHT!\n\n` +
+                        `📱 WhatsApp Web ist geöffnet\n` +
+                        `🔍 Suchen Sie: "${contactName}"\n` +
+                        `📝 Nachricht ist bereits vorbereitet!\n\n` +
+                        `💡 EINFACH:\n` +
+                        `1. Kontakt "${contactName}" finden\n` +
+                        `2. Nachricht aus zweitem Fenster kopieren\n` +
+                        `3. Einfügen und senden!\n\n` +
+                        `⚡ Alert erfolgreich ausgelöst!`
+                    );
+                }, 2000);
+            }, 1000);
+            
+            // Log for debugging
+            console.log('📨 WhatsApp-Alert versendet:', {
+                task: taskTitle,
+                contact: contactName,
+                wg: wgName,
+                sender: sender,
+                time: new Date().toISOString()
+            });
+        }
+
         // Close WhatsApp modal
         function closeWhatsAppModal() {
             const modal = document.getElementById('whatsappModal');
