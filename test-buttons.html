@@ -1,87 +1,243 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Button Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .btn {
-            padding: 15px 30px;
-            margin: 10px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            color: white;
-            display: block;
-            width: 300px;
-        }
-        .btn-primary { background: #3b82f6; }
-        .btn-success { background: #10b981; }
-        .btn-debug { background: #ef4444; }
-        h1 { text-align: center; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WG Putzplan – Button Smoke Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 24px; }
+    .ok { color: #059669; }
+    .err { color: #dc2626; }
+    button { margin: 6px; padding: 10px 14px; }
+    #log { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin-top: 12px; }
+  </style>
 </head>
 <body>
-    <h1>🧪 Button Test - Einfache Version</h1>
-    
-    <button class="btn btn-success" onclick="testFunction1()">
-        Test Button 1 - Neue WG
-    </button>
-    
-    <button class="btn btn-primary" onclick="testFunction2()">
-        Test Button 2 - Werthi WG
-    </button>
-    
-    <button class="btn btn-debug" onclick="testFunction3()">
-        Test Button 3 - Debug
-    </button>
-    
-    <div id="output" style="margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 8px;">
-        <h3>Output:</h3>
-        <div id="log"></div>
-    </div>
+  <h1>WG Putzplan – Button Smoke Test</h1>
+  <p>Diese Seite lädt die App (debug-demo.html) in einem versteckten IFrame und prüft, ob die globalen Funktionen vorhanden und aufrufbar sind.</p>
 
-    <script>
-        function log(message) {
-            const logDiv = document.getElementById('log');
-            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+  <div>
+    <button id="btnCheck">Globals prüfen</button>
+    <button id="btnCreate">createNewProfile()</button>
+    <button id="btnDarius">loadDariusWG()</button>
+    <button id="btnSetup">setupRealWG()</button>
+    <button id="btnAuto">Auto-Test (Sequenz)</button>
+    <a id="openApp" href="debug-demo.html" target="_blank" style="margin-left:8px;">App in neuem Tab öffnen →</a>
+  </div>
+
+  <div id="log"></div>
+
+  <iframe id="app" src="debug-demo.html?v=" style="width:1px;height:1px;border:0;position:absolute;left:-9999px;"></iframe>
+
+  <script>
+    const log = (msg, cls) => {
+      const el = document.getElementById('log');
+      const line = document.createElement('div');
+      if (cls) line.className = cls;
+      line.textContent = msg;
+      el.appendChild(line);
+    };
+
+    const ready = new Promise(resolve => {
+      const ifr = document.getElementById('app');
+      // cache-bust
+      try { ifr.src = 'debug-demo.html?v=' + Date.now(); } catch {}
+      ifr.addEventListener('load', () => {
+        const w = ifr.contentWindow;
+        // Pipe errors and console to our log for easier debugging
+        try {
+          const origErr = w.onerror;
+          w.onerror = function(message, source, lineno, colno, error) {
+            log(`[IFRAME ERROR] ${message} @ ${source}:${lineno}:${colno}`, 'err');
+            if (origErr) return origErr.apply(this, arguments);
+          };
+          w.addEventListener('error', (e) => {
+            log(`[IFRAME ERROR EVENT] ${e.message || e.type}`, 'err');
+          });
+          const c = w.console;
+          ['error','warn','info','log'].forEach(k => {
+            const orig = c[k];
+            c[k] = function(...args) {
+              try { log(`[iframe.${k}] ` + args.map(v => (typeof v==='string'?v:JSON.stringify(v))).join(' '), k==='error'?'err':(k==='warn'?'':undefined)); } catch {}
+              return orig.apply(this, args);
+            };
+          });
+        } catch (e) {
+          log('Konnte IFrame-Logging nicht setzen: ' + e.message, 'err');
         }
+        resolve(w);
+      });
+    });
 
-        function testFunction1() {
-            log('✅ Button 1 funktioniert! (Neue WG erstellen)');
-            alert('Button 1 wurde geklickt!');
+    async function getWin() {
+      const w = await ready;
+      return w;
+    }
+
+    async function checkGlobals() {
+      const w = await getWin();
+      const checks = ['createNewProfile', 'loadDariusWG', 'setupRealWG'];
+      checks.forEach(name => {
+        const ok = typeof w[name] === 'function';
+        log(`${name}: ${ok ? 'OK' : 'NOT FOUND'}`, ok ? 'ok' : 'err');
+      });
+      // Also report currently visible phase (if any)
+      try {
+        const doc = w.document;
+        const visible = Array.from(doc.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+        if (visible) {
+          log(`Sichtbare Phase: #${visible.id}`, 'ok');
+        } else {
+          log('Keine sichtbare Phase gefunden (ggf. Profile-Startseite)', 'err');
         }
+      } catch {}
+    }
 
-        function testFunction2() {
-            log('✅ Button 2 funktioniert! (Werthi WG laden)');
-            alert('Button 2 wurde geklickt!');
+    document.getElementById('btnCheck').addEventListener('click', async () => {
+      await checkGlobals();
+    });
+
+    document.getElementById('btnCreate').addEventListener('click', async () => {
+      const w = await getWin();
+      try {
+        if (typeof w.createNewProfile === 'function') {
+          w.createNewProfile();
+          log('createNewProfile() aufgerufen', 'ok');
+          // kurze Verzögerung, dann Phase prüfen
+          setTimeout(() => {
+            try {
+              const visible = Array.from(w.document.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+              if (visible) log(`Sichtbare Phase nach createNewProfile: #${visible.id}`, 'ok');
+            } catch {}
+          }, 200);
+        } else {
+          log('createNewProfile() nicht verfügbar', 'err');
         }
+      } catch (e) {
+        log('Fehler: ' + (e && e.message ? e.message : e), 'err');
+        if (e && e.stack) log(e.stack, 'err');
+      }
+    });
 
-        function testFunction3() {
-            log('✅ Button 3 funktioniert! (Debug)');
-            alert('Button 3 wurde geklickt!');
+    document.getElementById('btnDarius').addEventListener('click', async () => {
+      const w = await getWin();
+      try {
+        if (typeof w.loadDariusWG === 'function') {
+          w.loadDariusWG();
+          log('loadDariusWG() aufgerufen', 'ok');
+          setTimeout(() => {
+            try {
+              const visible = Array.from(w.document.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+              if (visible) log(`Sichtbare Phase nach loadDariusWG: #${visible.id}`, 'ok');
+            } catch {}
+          }, 600);
+        } else {
+          log('loadDariusWG() nicht verfügbar', 'err');
         }
+      } catch (e) {
+        log('Fehler: ' + e.message, 'err');
+      }
+    });
 
-        // Globale Funktionen exportieren (wie in der Hauptapp)
-        window.testFunction1 = testFunction1;
-        window.testFunction2 = testFunction2;
-        window.testFunction3 = testFunction3;
+    document.getElementById('btnSetup').addEventListener('click', async () => {
+      const w = await getWin();
+      try {
+        if (typeof w.setupRealWG === 'function') {
+          // setupRealWG fragt per confirm – wir patchen das IFrame confirm temporär.
+          const origConfirm = w.confirm;
+          w.confirm = () => true;
+          w.setupRealWG();
+          w.confirm = origConfirm;
+          log('setupRealWG() aufgerufen', 'ok');
+          // kurze Verzögerung, dann Phase prüfen
+          setTimeout(() => {
+            try {
+              const visible = Array.from(w.document.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+              if (visible) log(`Sichtbare Phase nach setupRealWG: #${visible.id}`, 'ok');
+            } catch {}
+          }, 1200);
+        } else {
+          log('setupRealWG() nicht verfügbar', 'err');
+        }
+      } catch (e) {
+        log('Fehler: ' + e.message, 'err');
+      }
+    });
 
-        // Log beim Laden
-        log('🚀 Seite geladen - Buttons sollten funktionieren!');
-        
-        console.log('🌐 Test functions exported:', {
-            testFunction1: typeof window.testFunction1,
-            testFunction2: typeof window.testFunction2,
-            testFunction3: typeof window.testFunction3
-        });
-    </script>
+    // Auto test sequence with simple ETA logs
+    document.getElementById('btnAuto').addEventListener('click', async () => {
+      const w = await getWin();
+      log('Auto-Test gestartet…', 'ok');
+      await checkGlobals();
+      try {
+        if (typeof w.createNewProfile === 'function') {
+          w.createNewProfile();
+          log('Step 1/3: createNewProfile() ✓', 'ok');
+          await new Promise(r => setTimeout(r, 200));
+          try {
+            const visible = Array.from(w.document.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+            if (visible) log(`Sichtbare Phase nach Step 1: #${visible.id}`, 'ok');
+          } catch {}
+        } else {
+          log('Step 1/3: createNewProfile() fehlt', 'err');
+        }
+      } catch (e) { log('Step 1 Fehler: ' + e.message, 'err'); }
+
+      await new Promise(r => setTimeout(r, 500));
+      try {
+        if (typeof w.loadDariusWG === 'function') {
+          w.loadDariusWG();
+          log('Step 2/3: loadDariusWG() ✓ (speichert als Profil)', 'ok');
+          await new Promise(r => setTimeout(r, 600));
+          try {
+            const visible = Array.from(w.document.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+            if (visible) log(`Sichtbare Phase nach Step 2: #${visible.id}`, 'ok');
+          } catch {}
+        } else {
+          log('Step 2/3: loadDariusWG() fehlt', 'err');
+        }
+      } catch (e) { log('Step 2 Fehler: ' + e.message, 'err'); }
+
+      await new Promise(r => setTimeout(r, 1200));
+      try {
+        if (typeof w.setupRealWG === 'function') {
+          const origConfirm = w.confirm; w.confirm = () => true;
+          w.setupRealWG();
+          w.confirm = origConfirm;
+          log('Step 3/3: setupRealWG() ✓', 'ok');
+          await new Promise(r => setTimeout(r, 600));
+          try {
+            const visible = Array.from(w.document.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+            if (visible) log(`Sichtbare Phase nach Step 3: #${visible.id}`, 'ok');
+          } catch {}
+        } else {
+          log('Step 3/3: setupRealWG() fehlt', 'err');
+        }
+      } catch (e) { log('Step 3 Fehler: ' + e.message, 'err'); }
+
+      setTimeout(() => {
+        try {
+          const visible = Array.from(w.document.querySelectorAll('.phase')).find(el => !el.classList.contains('hidden'));
+          if (visible) log(`Fertig. Sichtbare Phase: #${visible.id}`, 'ok');
+          log('Auto-Test abgeschlossen.', 'ok');
+        } catch (e) { log('Abschlussfehler: ' + e.message, 'err'); }
+      }, 1500);
+    });
+
+    // Run a quick check automatically once iframe is ready
+    (async () => {
+      const w = await getWin();
+      log('IFrame geladen – führe ersten Globals-Check aus…', 'ok');
+      await checkGlobals();
+    })();
+
+    // Cache-bust the open app link on click
+    const openApp = document.getElementById('openApp');
+    openApp.addEventListener('click', (e) => {
+      try {
+        openApp.href = 'debug-demo.html?v=' + Date.now();
+      } catch {}
+    });
+  </script>
 </body>
 </html>
