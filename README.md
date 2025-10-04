@@ -1,6 +1,6 @@
 # 🏠 WG-Putzplan-App
 
-Eine umfassende Progressive Web App für die Verwaltung von WG-Putzplänen mit intelligenter Punkteberechnung und WhatsApp-Integration.
+Eine umfassende (experimentelle) Web App für die Verwaltung von WG-Putzplänen mit intelligenter Punkteberechnung. (Ehemalige WhatsApp‑Automations wurden vollständig entfernt – siehe Abschnitt "Legacy Cleanup".)
 
 ## ✨ Features
 
@@ -26,9 +26,7 @@ Punkte = (Minuten + (Minuten × Pain / 10)) × Wichtigkeit
 
 ### 🚨 **Alert-System**
 - **Dringende Aufgaben** - Rotes Alert-System für wichtige Tasks
-- **WhatsApp-Integration** - Automatische Benachrichtigungen
-- **Multi-Plattform** - Funktioniert auf allen Geräten
-- **Automation Scripts** - Python-basierte WhatsApp-Automation
+- (Geplante) optionale Benachrichtigungen – aktuelle Version enthält keine externe Messaging-Automation mehr
 
 ### 👥 **Erweiterte Verwaltung**
 - **Temporäre Bewohner** - Besucher und Zwischenmieter verwalten
@@ -79,42 +77,47 @@ Punkte = (40 + (40 × 6 / 10)) × 8
        = 512 Punkte
 ```
 
-## 📱 **WhatsApp-Integration**
+## 🧹 Legacy Cleanup (Refactor 2025)
 
-### Automatische Benachrichtigungen:
-```bash
-# Manuelle WhatsApp-Automation
-python whatsapp_automation.py "Max Mustermann" "Küche putzen" "Meine WG" "Anna"
+Im Rahmen einer umfassenden Bereinigung wurden zahlreiche historische / experimentelle Dateien entfernt, um den Kern der Demo zu verschlanken und Wartbarkeit zu erhöhen.
 
-# Universal-Script (funktioniert auf allen Geräten)
-python whatsapp_universal.py "+491234567890" "🚨 Dringender Task: Badezimmer putzen!"
-```
+Entfernte Kategorien:
 
-### Setup:
-1. `pip install selenium webdriver-manager`
-2. Beim ersten Mal: QR-Code scannen
-3. Danach: Vollautomatisch!
+| Kategorie | Beispiele | Grund |
+|-----------|-----------|-------|
+| WhatsApp Automations (Python/JS/HTML/BAT) | `whatsapp_*.py`, `whatsapp_auto_send.*`, `whatsapp_vollautomatik*`, Batch-Skripte | Sicherheits-/Browser-Limits, außerhalb Scope der Kern-Demo |
+| Test & Debug HTML Varianten | `clean-app.html`, `fixed-app.html`, `repaired-app.html`, `test-*.html`, `simple-test.html`, `ultra_test.html` | Redundante Entwicklungsartefakte |
+| Minimal / Übergangs-Versionen | `putzplan_clean.html`, `putzplan-minimal.html`, `demo.html` | Ersetzt durch modularisierte `debug-demo.html` |
+| Leere/Placeholder Dateien | `emergency-fix.js`, `app-legacy.js` | Keine Funktion mehr nötig |
+| Session / Temp Daten | `whatsapp_session/` | Nicht mehr gebraucht |
+| Spezifische README | `README_WhatsApp.md` | Inhalt obsolet / integriert hier |
+
+Ziele der Bereinigung:
+- Kleinere Codebase → schnelleres Onboarding
+- Entfernen nicht mehr getesteter Skripte
+- Fokus auf Kernfunktionalität (Profile, Tasks, Punkte, Abwesenheiten)
+- Vorbereitung auf zukünftige Modularisierung / evtl. API-Anbindung
+
+Falls du ältere Automations benötigst: nutze Git-History (Commit vor Cleanup) oder implementiere eine eigene Integrationsschicht außerhalb dieses Repos.
+
+Hinweis: Verweise auf entfernte Dateien in alten Blogposts / Snippets sind bewusst nicht mehr gültig.
 
 ## 🛠️ **Entwicklung**
 
-### Struktur:
+### Struktur (vereinfacht):
 ```
 📁 WG-Putzplan-App/
 ├── 📄 debug-demo.html          # Haupt-App (Standalone)
 ├── 📄 index.html               # Alternative Version
-├── 📁 whatsapp-scripts/        # WhatsApp-Automation
-│   ├── 🐍 whatsapp_automation.py
-│   ├── 🐍 whatsapp_universal.py
-│   └── 🐍 whatsapp_hyper_automatik.py
+├── 📁 assets/                  # Ausgelagerte CSS/JS
 ├── 📄 README.md                # Diese Datei
-└── 📄 .gitignore              # Git-Ausschlüsse
+└── 📄 .gitignore               # Git-Ausschlüsse
 ```
 
 ### Technologien:
 - **Frontend**: Vanilla HTML/CSS/JavaScript
 - **Storage**: Browser LocalStorage
-- **Automation**: Python + Selenium
-- **Design**: Mobile-First, PWA-Ready
+- **Design**: Mobile-First, PWA-orientiert (Basis)
 
 ## 🎯 **Roadmap**
 
