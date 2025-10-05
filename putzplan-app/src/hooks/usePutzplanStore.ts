@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AppState, Task, User, WG, TaskExecution, TaskSuggestion } from '../types';
+import { AppState, Task, User, WG, TaskExecution, TaskSuggestion, Absence, TemporaryResident, UrgentTask, QualityRating } from '../types';
 import { dataManager } from '../services/dataManager';
 import { generateTaskSuggestions } from '../utils/taskUtils';
 
@@ -45,6 +45,10 @@ export function usePutzplanStore() {
       });
     }
   }, [state.users]);
+
+  const updateUser = useCallback((userId: string, updates: Partial<User>) => {
+    dataManager.updateUser(userId, updates);
+  }, []);
 
   // ========================================
   // WG ACTIONS
@@ -210,6 +214,46 @@ export function usePutzplanStore() {
   }, [state.notifications]);
 
   // ========================================
+  // ABSENCES / TEMP RESIDENTS / URGENT TASKS / QUALITY
+  // ========================================
+
+  const createAbsence = useCallback((data: Omit<Absence, 'id' | 'createdAt' | 'isApproved' | 'approvedBy'> & { autoApprove?: boolean }) => {
+    return dataManager.createAbsence(data);
+  }, []);
+
+  const listActiveAbsencesForUser = useCallback((userId: string, at: Date = new Date()) => {
+    return dataManager.listAbsences({ userId, activeOnly: true, at });
+  }, []);
+
+  const addTemporaryResident = useCallback((data: Omit<TemporaryResident, 'id' | 'addedAt'>) => {
+    return dataManager.addTemporaryResident(data);
+  }, []);
+
+  const activeTemporaryResidents = useCallback((at: Date = new Date()) => {
+    return dataManager.listActiveTemporaryResidents(at);
+  }, [state.temporaryResidents]);
+
+  const createUrgentTask = useCallback((data: Omit<UrgentTask, 'id' | 'createdAt' | 'active' | 'resolvedAt' | 'resolvedBy'>) => {
+    return dataManager.createUrgentTask(data);
+  }, []);
+
+  const resolveUrgentTask = useCallback((urgentTaskId: string, resolverId: string) => {
+    return dataManager.resolveUrgentTask(urgentTaskId, resolverId);
+  }, []);
+
+  const activeUrgentTasks = useCallback(() => {
+    return dataManager.listUrgentTasks(true);
+  }, [state.urgentTasks]);
+
+  const addQualityRating = useCallback((data: Omit<QualityRating, 'id' | 'createdAt'>) => {
+    return dataManager.addQualityRating(data);
+  }, []);
+
+  const qualityRatingsForExecution = useCallback((executionId: string) => {
+    return dataManager.listQualityRatingsForExecution(executionId);
+  }, [state.qualityRatings]);
+
+  // ========================================
   // UTILITY ACTIONS
   // ========================================
 
@@ -225,6 +269,16 @@ export function usePutzplanStore() {
     dataManager.importData(jsonData);
   }, []);
 
+  // Demo Dataset neu laden
+  const loadDemoDataset = useCallback(() => {
+    (dataManager as any).reloadDemoDataset();
+  }, []);
+  const forceResetDemo = useCallback(() => {
+    (dataManager as any).forceResetDemo();
+  }, []);
+  const isDemoDataset = dataManager.isDemoDataset();
+
+
   // ========================================
   // RETURN HOOK INTERFACE
   // ========================================
@@ -237,6 +291,7 @@ export function usePutzplanStore() {
     createUser,
     setCurrentUser,
     updateUserPoints,
+  updateUser,
     
     // WG actions
     createWG,
@@ -256,11 +311,25 @@ export function usePutzplanStore() {
     currentUserProgress: currentUserProgress(),
     recentExecutions: recentExecutions(),
     unreadNotificationsCount: unreadNotificationsCount(),
+  activeTemporaryResidents: activeTemporaryResidents(),
+  activeUrgentTasks: activeUrgentTasks(),
     
     // Utility
     clearAllData,
     exportData,
     importData,
+    loadDemoDataset,
+  forceResetDemo,
+    isDemoDataset,
+
+  // New domain actions
+  createAbsence,
+  listActiveAbsencesForUser,
+  addTemporaryResident,
+  createUrgentTask,
+  resolveUrgentTask,
+  addQualityRating,
+  qualityRatingsForExecution,
     
     // Direct state access (for specific components)
     currentUser: state.currentUser,

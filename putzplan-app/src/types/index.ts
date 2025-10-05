@@ -220,6 +220,10 @@ export interface AppState {
   executions: Record<string, TaskExecution>;
   ratings: Record<string, TaskRating>;
   notifications: Record<string, Notification>;
+  absences?: Record<string, Absence>; // keyed by absence id
+  temporaryResidents?: Record<string, TemporaryResident>;
+  urgentTasks?: Record<string, UrgentTask>; // active + history
+  qualityRatings?: Record<string, QualityRating>; // rating of an execution
   
   // Cache/Computed
   monthlyStats: Record<string, MonthlyUserStats>;
@@ -228,6 +232,9 @@ export interface AppState {
   // UI State
   isLoading: boolean;
   lastSyncAt?: Date;
+  appMeta?: {
+    initialLaunchDone: boolean;
+  };
 }
 
 // API Response Types für Backend-Integration (später)
@@ -325,4 +332,87 @@ export interface JoinWGForm {
 export interface CreateWGForm {
   name: string;
   description?: string;
+}
+
+// ========================================
+// NEUE DOMÄNEN: Abwesenheiten / Temp Residents / Dringende Tasks / Qualitäts-Ratings
+// ========================================
+
+export enum AbsenceType {
+  VACATION = 'vacation',
+  SICKNESS = 'sickness',
+  TRAVEL = 'travel',
+  OTHER = 'other'
+}
+
+export interface Absence {
+  id: string;
+  userId: string;
+  type: AbsenceType;
+  reason?: string;
+  startDate: Date;
+  endDate: Date;
+  createdAt: Date;
+  createdBy: string; // user id
+  approvedBy?: string; // optional approver
+  isApproved: boolean;
+}
+
+export interface TemporaryResident {
+  id: string;
+  name: string;
+  icon: string;
+  startDate: Date;
+  endDate: Date;
+  profileId: string; // maps to WG id (oder später multi profile)
+  addedAt: Date;
+  addedBy?: string;
+}
+
+export interface UrgentTask {
+  id: string;
+  taskId: string;
+  createdAt: Date;
+  createdBy: string;
+  active: boolean;
+  expiresAt?: Date;
+  resolvedAt?: Date;
+  resolvedBy?: string;
+  reason?: string;
+}
+
+export enum RatingValue {
+  BAD = 1,
+  OKAY = 2,
+  GOOD = 3,
+  PERFECT = 4
+}
+
+// Qualitätsbewertung einer konkreten Ausführung (Execution)
+export interface QualityRating {
+  id: string;
+  taskExecutionId: string;
+  raterId: string;
+  overall: RatingValue;
+  checklistRatings?: Record<string, RatingValue>; // key = checklist item label or id
+  comments?: string;
+  createdAt: Date;
+}
+
+// Hilfs-Filtertypen
+export interface AbsenceQuery {
+  userId?: string;
+  from?: Date;
+  to?: Date;
+  activeOnly?: boolean;
+}
+
+export interface TemporaryResidentQuery {
+  at?: Date; // default now
+  includePast?: boolean;
+}
+
+export interface UrgentTaskQuery {
+  activeOnly?: boolean;
+  taskId?: string;
 }

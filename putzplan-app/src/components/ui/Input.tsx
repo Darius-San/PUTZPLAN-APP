@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -13,6 +13,10 @@ export const Input: React.FC<InputProps> = ({
   className = '',
   ...props
 }) => {
+  // Generate stable id if none provided for proper label association
+  const generatedId = useId();
+  // @ts-ignore id might be part of props
+  const inputId = (props as any).id || generatedId;
   const inputClasses = `
     w-full px-3 py-2 text-sm border rounded-lg
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -20,20 +24,23 @@ export const Input: React.FC<InputProps> = ({
     ${error ? 'border-red-500' : 'border-gray-300'}
     ${className}
   `;
+  const describedBy: string[] = [];
+  if (error) describedBy.push(`${inputId}-error`);
+  if (helpText && !error) describedBy.push(`${inputId}-help`);
 
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
           {label}
         </label>
       )}
-      <input className={inputClasses} {...props} />
+      <input id={inputId} aria-describedby={describedBy.length ? describedBy.join(' ') : undefined} className={inputClasses} {...props} />
       {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p id={`${inputId}-error`} className="mt-1 text-sm text-red-600">{error}</p>
       )}
       {helpText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helpText}</p>
+        <p id={`${inputId}-help`} className="mt-1 text-sm text-gray-500">{helpText}</p>
       )}
     </div>
   );
@@ -52,6 +59,9 @@ export const TextArea: React.FC<TextAreaProps> = ({
   className = '',
   ...props
 }) => {
+  const generatedId = useId();
+  // @ts-ignore
+  const textareaId = (props as any).id || generatedId;
   const textareaClasses = `
     w-full px-3 py-2 text-sm border rounded-lg resize-none
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -59,20 +69,23 @@ export const TextArea: React.FC<TextAreaProps> = ({
     ${error ? 'border-red-500' : 'border-gray-300'}
     ${className}
   `;
+  const describedBy: string[] = [];
+  if (error) describedBy.push(`${textareaId}-error`);
+  if (helpText && !error) describedBy.push(`${textareaId}-help`);
 
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700 mb-1">
           {label}
         </label>
       )}
-      <textarea className={textareaClasses} rows={3} {...props} />
+      <textarea id={textareaId} aria-describedby={describedBy.length ? describedBy.join(' ') : undefined} className={textareaClasses} rows={3} {...props} />
       {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p id={`${textareaId}-error`} className="mt-1 text-sm text-red-600">{error}</p>
       )}
       {helpText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helpText}</p>
+        <p id={`${textareaId}-help`} className="mt-1 text-sm text-gray-500">{helpText}</p>
       )}
     </div>
   );
@@ -93,6 +106,9 @@ export const Select: React.FC<SelectProps> = ({
   className = '',
   ...props
 }) => {
+  const generatedId = useId();
+  // @ts-ignore
+  const selectId = (props as any).id || generatedId;
   const selectClasses = `
     w-full px-3 py-2 text-sm border rounded-lg
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -100,15 +116,18 @@ export const Select: React.FC<SelectProps> = ({
     ${error ? 'border-red-500' : 'border-gray-300'}
     ${className}
   `;
+  const describedBy: string[] = [];
+  if (error) describedBy.push(`${selectId}-error`);
+  if (helpText && !error) describedBy.push(`${selectId}-help`);
 
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={selectId} className="block text-sm font-medium text-gray-700 mb-1">
           {label}
         </label>
       )}
-      <select className={selectClasses} {...props}>
+      <select id={selectId} aria-describedby={describedBy.length ? describedBy.join(' ') : undefined} className={selectClasses} {...props}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -116,10 +135,10 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p id={`${selectId}-error`} className="mt-1 text-sm text-red-600">{error}</p>
       )}
       {helpText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helpText}</p>
+        <p id={`${selectId}-help`} className="mt-1 text-sm text-gray-500">{helpText}</p>
       )}
     </div>
   );
