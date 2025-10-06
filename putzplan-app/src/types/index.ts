@@ -39,10 +39,12 @@ export interface WGSettings {
 // Task-Definition (Template)
 export interface Task {
   id: string;
+  wgId?: string; // Zugehörige WG (optional für Legacy Tasks, künftig required)
   title: string;
   description: string;
   emoji: string; // Emoticon für den Task
   category: TaskCategory;
+  checklist?: string[]; // optionale Checklisten-Punkte
   
   // Bewertungssystem (basierend auf Community-Bewertungen)
   averageMinutes: number; // Durchschnittliche Minuten aller Bewertungen
@@ -139,6 +141,48 @@ export interface TaskRating {
   createdAt: Date;
 }
 
+// Bewertung einer konkreten Ausführung (nachträgliche Bewertung wie im Legacy-Modal)
+export interface PostExecutionRating {
+  id: string;
+  executionId: string;
+  taskId: string;
+  createdAt: Date;
+  ratedBy: string; // User der bewertet
+  score: number;   // 1-5 Sterne (vereinfachtes Modell)
+  notes?: string;
+}
+
+// Abwesenheit eines Users (Absences)
+export interface Absence {
+  id: string;
+  userId: string;
+  reason: 'vacation' | 'work' | 'family' | 'other';
+  startDate: Date;
+  endDate: Date;
+  createdAt: Date;
+  updatedAt?: Date;
+  daysCached?: number; // optional zur schnellen Anzeige
+}
+
+// Temporärer Bewohner (Temporary Resident)
+export interface TemporaryResident {
+  id: string;
+  profileId: string; // WG/Profil Kontext
+  name: string;
+  icon: string;
+  startDate: Date;
+  endDate: Date;
+  addedAt: Date;
+}
+
+// Perioden-Information (aktueller Monat / Abrechnungszeitraum)
+export interface PeriodInfo {
+  id: string; // z.B. '2025-10'
+  start: Date;
+  end: Date;
+  days: number;
+}
+
 // Monatliche Statistiken pro User
 export interface MonthlyUserStats {
   id: string;
@@ -213,17 +257,23 @@ export enum NotificationType {
 export interface AppState {
   currentUser: User | null;
   currentWG: WG | null;
+  // Mehrere WGs werden jetzt unterstützt
+  wgs?: Record<string, WG>; // map wgId -> WG
   
   // Daten
   users: Record<string, User>;
   tasks: Record<string, Task>;
   executions: Record<string, TaskExecution>;
   ratings: Record<string, TaskRating>;
+  postExecutionRatings?: Record<string, PostExecutionRating>; // optional bis Implementierung fertig
   notifications: Record<string, Notification>;
+  absences?: Record<string, Absence[]>; // userId -> Liste
+  temporaryResidents?: Record<string, TemporaryResident[]>; // profileId -> Liste
   
   // Cache/Computed
   monthlyStats: Record<string, MonthlyUserStats>;
   taskSuggestions: TaskSuggestion[];
+  currentPeriod?: PeriodInfo;
   
   // UI State
   isLoading: boolean;

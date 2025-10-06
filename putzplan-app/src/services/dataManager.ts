@@ -1,4 +1,4 @@
-import { AppState, User, WG, Task, TaskExecution, TaskRating, Notification, ExecutionStatus } from '../types';
+import { AppState, User, WG, Task, TaskExecution, TaskRating, Notification, ExecutionStatus, Absence, TemporaryResident, PostExecutionRating, PeriodInfo } from '../types';
 import { generateId } from '../utils/taskUtils';
 
 // ========================================
@@ -14,6 +14,7 @@ const STORAGE_VERSION = '1.0';
 const initialState: AppState = {
   currentUser: null,
   currentWG: null,
+  wgs: {},
   users: {},
   tasks: {},
   executions: {},
@@ -22,7 +23,12 @@ const initialState: AppState = {
   monthlyStats: {},
   taskSuggestions: [],
   isLoading: false,
-  lastSyncAt: undefined
+  lastSyncAt: undefined,
+  // Neue optionale Strukturen
+  absences: {},
+  temporaryResidents: {},
+  postExecutionRatings: {},
+  currentPeriod: undefined
 };
 
 /**
@@ -161,6 +167,21 @@ export class DataManager {
     this.updateState({ currentUser: user });
   }
 
+  /**
+   * Entfernt die aktuelle User-Referenz (zurück zur Profilübersicht)
+   */
+  clearCurrentUser(): void {
+    if (this.state.currentUser) {
+      this.updateState({ currentUser: null });
+    }
+  }
+
+  clearCurrentWG(): void {
+    if (this.state.currentWG) {
+      this.updateState({ currentWG: null });
+    }
+  }
+
   // ========================================
   // WG MANAGEMENT
   // ========================================
@@ -175,10 +196,22 @@ export class DataManager {
     };
 
     this.updateState({
-      currentWG: wg
+      currentWG: wg,
+      wgs: { ...(this.state.wgs || {}), [wg.id]: wg }
     });
 
     return wg;
+  }
+
+  /**
+   * Aktualisiert Eigenschaften der aktuellen WG (z.B. memberIds)
+   */
+  updateWG(wgId: string, updates: Partial<WG>): void {
+    const existing = (this.state.wgs || {})[wgId] || (this.state.currentWG && this.state.currentWG.id === wgId ? this.state.currentWG : undefined);
+    if (!existing) return;
+    const updated = { ...existing, ...updates } as WG;
+    const newWgs = { ...(this.state.wgs || {}), [wgId]: updated };
+    this.updateState({ currentWG: this.state.currentWG?.id === wgId ? updated : this.state.currentWG, wgs: newWgs });
   }
 
   joinWG(inviteCode: string, userId: string): WG {
@@ -200,8 +233,14 @@ export class DataManager {
       }
     };
 
-    this.updateState({ currentWG: wg });
+    this.updateState({ currentWG: wg, wgs: { ...(this.state.wgs || {}), [wg.id]: wg } });
     return wg;
+  }
+
+  setCurrentWG(wgId: string) {
+    const wg = (this.state.wgs || {})[wgId];
+    if (!wg) return;
+    this.updateState({ currentWG: wg });
   }
 
   private generateInviteCode(): string {
@@ -217,7 +256,8 @@ export class DataManager {
 
   addWG(wg: WG): void {
     this.updateState({
-      currentWG: wg
+      currentWG: wg,
+      wgs: { ...(this.state.wgs || {}), [wg.id]: wg }
     });
   }
 
@@ -231,7 +271,7 @@ export class DataManager {
   // TASK MANAGEMENT
   // ========================================
 
-  createTask(taskData: Omit<Task, 'id' | 'createdAt' | 'createdBy' | 'basePoints'>): Task {
+  createTask(taskData: Omit<Task, 'id' | 'createdAt' | 'createdBy' | 'basePoints' | 'wgId'>): Task {
     if (!this.state.currentUser) throw new Error('No current user');
 
     // Berechne basePoints basierend auf difficulty und unpleasantness
@@ -242,6 +282,7 @@ export class DataManager {
     const task: Task = {
       ...taskData,
       id: generateId(),
+      wgId: this.state.currentWG?.id,
       createdAt: new Date(),
       createdBy: this.state.currentUser.id,
       basePoints: Math.max(1, basePoints) // Mindestens 1 Punkt
@@ -279,10 +320,15 @@ export class DataManager {
     const task = this.state.tasks[taskId];
     if (!task) throw new Error('Task not found');
 
-    // Punkte berechnen (vereinfacht, ohne Ratings)
-    const pointsAwarded = task.basePoints * 
-      (1 + (task.difficultyScore - 1) * 0.2) * 
+    // Basis-Punkteberechnung
+    let pointsAwarded = task.basePoints *
+      (1 + (task.difficultyScore - 1) * 0.2) *
       (1 + (task.unpleasantnessScore - 1) * 0.3);
+
+    // Temporäre Bewohner Multiplikator
+    const multiplier = this.getTemporaryResidentMultiplier();
+    pointsAwarded = pointsAwarded * multiplier;
+    pointsAwarded = Math.round(pointsAwarded);
 
     const execution: TaskExecution = {
       id: generateId(),
@@ -357,6 +403,108 @@ export class DataManager {
     });
 
     return rating;
+  }
+
+  // Nachträgliche Bewertung einer konkreten Ausführung (vereinfachtes Rating-Modell)
+  rateExecution(executionId: string, data: { score: number; notes?: string }): PostExecutionRating {
+    if (!this.state.currentUser) throw new Error('No current user');
+    if (!this.state.executions[executionId]) throw new Error('Execution not found');
+
+    const execution = this.state.executions[executionId];
+    const rating: PostExecutionRating = {
+      id: generateId(),
+      executionId,
+      taskId: execution.taskId,
+      createdAt: new Date(),
+      ratedBy: this.state.currentUser.id,
+      score: Math.max(1, Math.min(5, data.score)),
+      notes: data.notes
+    };
+    const merged = { ...(this.state.postExecutionRatings || {}), [rating.id]: rating };
+    this.updateState({ postExecutionRatings: merged });
+    return rating;
+  }
+
+  // ========================================
+  // ABSENCES (Abwesenheiten)
+  // ========================================
+
+  addAbsence(absenceData: Omit<Absence, 'id' | 'createdAt' | 'updatedAt' | 'daysCached'>): Absence {
+    const absence: Absence = {
+      ...absenceData,
+      id: generateId(),
+      createdAt: new Date()
+    };
+    const userAbsences = this.state.absences?.[absence.userId] || [];
+    this.updateState({ absences: { ...(this.state.absences || {}), [absence.userId]: [...userAbsences, absence] } });
+    return absence;
+  }
+
+  removeAbsence(userId: string, absenceId: string): void {
+    const userAbsences = this.state.absences?.[userId] || [];
+    this.updateState({ absences: { ...(this.state.absences || {}), [userId]: userAbsences.filter(a => a.id !== absenceId) } });
+  }
+
+  getActiveAbsences(userId: string, date: Date = new Date()): Absence[] {
+    return (this.state.absences?.[userId] || []).filter(a => date >= new Date(a.startDate) && date <= new Date(a.endDate));
+  }
+
+  // Berechnet Reduktion des Monatsziels (vereinfachte Version)
+  getAdjustedMonthlyTarget(user: User, period: PeriodInfo): number {
+    const absences = this.state.absences?.[user.id] || [];
+    if (absences.length === 0) return user.targetMonthlyPoints;
+    const totalAbsentDays = absences.reduce((sum, a) => {
+      const start = new Date(a.startDate) < period.start ? period.start : new Date(a.startDate);
+      const end = new Date(a.endDate) > period.end ? period.end : new Date(a.endDate);
+      if (end < period.start || start > period.end) return sum;
+      const days = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1);
+      return sum + days;
+    }, 0);
+    const reduction = (user.targetMonthlyPoints / period.days) * totalAbsentDays;
+    return Math.max(0, Math.round(user.targetMonthlyPoints - reduction));
+  }
+
+  // ========================================
+  // TEMPORARY RESIDENTS
+  // ========================================
+
+  addTemporaryResident(residentData: Omit<TemporaryResident, 'id' | 'addedAt'>): TemporaryResident {
+    const resident: TemporaryResident = { ...residentData, id: generateId(), addedAt: new Date() };
+    const list = this.state.temporaryResidents?.[resident.profileId] || [];
+    this.updateState({ temporaryResidents: { ...(this.state.temporaryResidents || {}), [resident.profileId]: [...list, resident] } });
+    return resident;
+  }
+
+  removeTemporaryResident(profileId: string, id: string): void {
+    const list = this.state.temporaryResidents?.[profileId] || [];
+    this.updateState({ temporaryResidents: { ...(this.state.temporaryResidents || {}), [profileId]: list.filter(r => r.id !== id) } });
+  }
+
+  getActiveTemporaryResidents(date: Date = new Date()): TemporaryResident[] {
+    const profileId = this.state.currentWG?.id;
+    if (!profileId) return [];
+    return (this.state.temporaryResidents?.[profileId] || []).filter(r => date >= new Date(r.startDate) && date <= new Date(r.endDate));
+  }
+
+  getTemporaryResidentMultiplier(date: Date = new Date()): number {
+    const active = this.getActiveTemporaryResidents(date).length;
+    if (active === 0) return 1;
+    return 1 + active / 6; // Legacy Logik
+  }
+
+  // ========================================
+  // PERIOD / MONTHLY STATS (Basis)
+  // ========================================
+  ensureCurrentPeriod(): PeriodInfo {
+    const now = new Date();
+    const id = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (this.state.currentPeriod && this.state.currentPeriod.id === id) return this.state.currentPeriod;
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const days = end.getDate();
+    const period: PeriodInfo = { id, start, end, days };
+    this.updateState({ currentPeriod: period });
+    return period;
   }
 
   // ========================================

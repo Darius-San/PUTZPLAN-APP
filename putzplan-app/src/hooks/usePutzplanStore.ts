@@ -37,6 +37,10 @@ export function usePutzplanStore() {
     dataManager.setCurrentUser(userId);
   }, []);
 
+  const clearCurrentUser = useCallback(() => {
+    dataManager.clearCurrentUser();
+  }, []);
+
   const updateUserPoints = useCallback((userId: string, points: number) => {
     const user = state.users[userId];
     if (user) {
@@ -83,8 +87,24 @@ export function usePutzplanStore() {
     dataManager.addWG(wg);
   }, []);
 
+  const setCurrentWG = useCallback((wgId: string) => {
+    dataManager.setCurrentWG(wgId);
+  }, []);
+
+  const updateWG = useCallback((wgId: string, updates: Partial<WG>) => {
+    dataManager.updateWG(wgId, updates);
+  }, []);
+
+  const clearCurrentWG = useCallback(() => {
+    dataManager.clearCurrentWG();
+  }, []);
+
   const addTask = useCallback((task: Task) => {
     dataManager.addTask(task);
+  }, []);
+
+  const updateTask = useCallback((taskId: string, updates: Partial<Task>) => {
+    dataManager.updateTask(taskId, updates as any);
   }, []);
 
   // ========================================
@@ -180,6 +200,60 @@ export function usePutzplanStore() {
     }).length;
   }, [state.tasks, state.executions]);
 
+  // Min-Intervall & Dringlichkeit
+  const canExecuteTaskNow = useCallback((task: Task): boolean => {
+    const executions = Object.values(state.executions).filter(e => e.taskId === task.id).sort((a,b)=> new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime());
+    const last = executions[0];
+    if (!task.constraints.minDaysBetween) return true;
+    if (!last) return true;
+    const daysSince = Math.floor((Date.now() - new Date(last.executedAt).getTime()) / 86400000);
+    return daysSince >= task.constraints.minDaysBetween;
+  }, [state.executions]);
+
+  const nextEarliestExecutionDate = useCallback((task: Task): Date | null => {
+    if (!task.constraints.minDaysBetween) return null;
+    const executions = Object.values(state.executions).filter(e => e.taskId === task.id).sort((a,b)=> new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime());
+    const last = executions[0];
+    if (!last) return null;
+    const d = new Date(last.executedAt);
+    d.setDate(d.getDate() + task.constraints.minDaysBetween);
+    return d;
+  }, [state.executions]);
+
+  const isTaskUrgent = useCallback((task: Task): boolean => {
+    const executions = Object.values(state.executions).filter(e => e.taskId === task.id).sort((a,b)=> new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime());
+    const last = executions[0];
+    const since = Math.floor((Date.now() - (last ? new Date(last.executedAt).getTime() : new Date(task.createdAt).getTime())) / 86400000);
+    return since > task.constraints.maxDaysBetween;
+  }, [state.executions]);
+
+  // Pending Ratings (post-execution) – vereinfachter Ansatz: alle fremden Executions ohne vorhandenes Rating des currentUser
+  const pendingRatingsCount = useCallback((): number => {
+    if (!state.currentUser) return 0;
+    const ratedPairs = new Set(
+      Object.values(state.postExecutionRatings || {})
+        .filter(r => r.ratedBy === state.currentUser!.id)
+        .map(r => r.executionId)
+    );
+    return Object.values(state.executions)
+      .filter(exec => exec.executedBy !== state.currentUser!.id)
+      .filter(exec => !ratedPairs.has(exec.id))
+      .length;
+  }, [state.postExecutionRatings, state.executions, state.currentUser]);
+
+  // Adjusted monthly target based on absences
+  const adjustedMonthlyTarget = useCallback(() => {
+    // Avoid calling dataManager.ensureCurrentPeriod() here because it mutates state.
+    // We set the current period once in an effect (see below). During render we only
+    // derive the value if both currentUser and currentPeriod exist.
+    if (!state.currentUser || !state.currentPeriod) return 0;
+    return dataManager.getAdjustedMonthlyTarget(state.currentUser, state.currentPeriod);
+  }, [state.currentUser, state.currentPeriod]);
+
+  const temporaryResidentMultiplier = useCallback(() => {
+    return dataManager.getTemporaryResidentMultiplier();
+  }, [state.temporaryResidents]);
+
   const currentUserProgress = useCallback(() => {
     if (!state.currentUser) return { percentage: 0, points: 0, target: 100 };
     
@@ -217,6 +291,17 @@ export function usePutzplanStore() {
     dataManager.clearAllData();
   }, []);
 
+  // ========================================
+  // ONE-TIME PERIOD INITIALIZATION
+  // ========================================
+  // ensureCurrentPeriod previously ran implicitly inside adjustedMonthlyTarget during render,
+  // causing React warnings (state update during render). We now perform it once after mount.
+  useEffect(() => {
+    dataManager.ensureCurrentPeriod();
+    // No dependencies: only run once on mount. If you later need to recompute for a new month,
+    // you can add a timer or check date boundaries elsewhere.
+  }, []);
+
   const exportData = useCallback(() => {
     return dataManager.exportData();
   }, []);
@@ -236,6 +321,7 @@ export function usePutzplanStore() {
     // User actions
     createUser,
     setCurrentUser,
+  clearCurrentUser,
     updateUserPoints,
     
     // WG actions
@@ -243,7 +329,11 @@ export function usePutzplanStore() {
     joinWG,
     addUser,
     addWG,
-    addTask,
+  setCurrentWG,
+  updateWG,
+  clearCurrentWG,
+  addTask,
+  updateTask,
     
     // Task actions
     createTask,
@@ -256,6 +346,9 @@ export function usePutzplanStore() {
     currentUserProgress: currentUserProgress(),
     recentExecutions: recentExecutions(),
     unreadNotificationsCount: unreadNotificationsCount(),
+  pendingRatingsCount: pendingRatingsCount(),
+  adjustedMonthlyTarget: adjustedMonthlyTarget(),
+  temporaryResidentMultiplier: temporaryResidentMultiplier(),
     
     // Utility
     clearAllData,
@@ -267,7 +360,10 @@ export function usePutzplanStore() {
     currentWG: state.currentWG,
     tasks: state.tasks,
     executions: state.executions,
-    isLoading: state.isLoading
+    isLoading: state.isLoading,
+    canExecuteTaskNow,
+    nextEarliestExecutionDate,
+    isTaskUrgent
   };
 }
 
