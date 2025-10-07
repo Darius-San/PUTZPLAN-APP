@@ -1,6 +1,23 @@
 import { AppState, User, WG, Task, TaskExecution, TaskRating, Notification, ExecutionStatus, Absence, TemporaryResident, PostExecutionRating, PeriodInfo } from '../types';
 import { generateId } from '../utils/taskUtils';
 
+// Minimal localStorage polyfill for non-browser / early import contexts (e.g. Vitest module eval order)
+// Ensures DataManager can construct even if jsdom not initialized yet.
+const ls: Storage = (() => {
+  try {
+    if (typeof localStorage !== 'undefined') return localStorage;
+  } catch (_) { /* ignore */ }
+  let mem: Record<string, string> = {};
+  return {
+    getItem: (k: string) => (k in mem ? mem[k] : null),
+    setItem: (k: string, v: string) => { mem[k] = v; },
+    removeItem: (k: string) => { delete mem[k]; },
+    clear: () => { mem = {}; },
+    key: (i: number) => Object.keys(mem)[i] || null,
+    get length() { return Object.keys(mem).length; }
+  } as Storage;
+})();
+
 // ========================================
 // LOKALES DATENMANAGEMENT MIT LOCALSTORAGE
 // ========================================
@@ -71,7 +88,11 @@ export class DataManager {
 
   private loadFromStorage(): AppState {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      // In test environments the DataManager can be constructed before jsdom provides localStorage.
+      if (typeof (globalThis as any).localStorage === 'undefined') {
+        return { ...initialState };
+      }
+      const stored = ls.getItem(STORAGE_KEY);
       if (!stored) return initialState;
 
       const data = JSON.parse(stored);
@@ -84,7 +105,24 @@ export class DataManager {
 
       // Datum-Strings zu Date-Objekten konvertieren
       const state = this.deserializeDates(data.state);
-      return { ...initialState, ...state };
+      const merged = { ...initialState, ...state } as AppState;
+      // Defensive repair: if we lost the wgs map but still have a currentWG restore it
+      if (!merged.wgs) merged.wgs = {} as any;
+      if (Object.keys(merged.wgs as any).length === 0 && merged.currentWG) {
+        merged.wgs = { [merged.currentWG.id]: merged.currentWG } as any;
+      }
+      // If tasks reference a wgId not present, reconstruct minimal WG shells (prevents empty overview)
+      if (merged.tasks && Object.keys(merged.tasks).length > 0) {
+        const missingIds = new Set<string>();
+  Object.values(merged.tasks).forEach((t: any) => { if (t.wgId && !(merged.wgs as any)[t.wgId]) missingIds.add(t.wgId); });
+        if (missingIds.size) {
+          merged.wgs = { ...merged.wgs } as any;
+            missingIds.forEach(id => {
+              (merged.wgs as any)[id] = (merged.wgs as any)[id] || ({ id, name: `WG ${id.substring(0,4)}`, description: 'Reconstructed', createdAt: new Date(), memberIds: [], inviteCode: 'RECOVER', settings: { monthlyPointsTarget: 100, reminderSettings: { lowPointsThreshold: 20, overdueDaysThreshold: 3, enablePushNotifications: false } } });
+            });
+        }
+      }
+      return merged;
       
     } catch (error) {
       console.error('Error loading from storage:', error);
@@ -99,7 +137,7 @@ export class DataManager {
         state: this.state,
         savedAt: new Date().toISOString()
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  ls.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
       console.error('Error saving to storage:', error);
     }
@@ -213,10 +251,9 @@ export class DataManager {
     const newWgs = { ...(this.state.wgs || {}), [wgId]: updated };
     this.updateState({ currentWG: this.state.currentWG?.id === wgId ? updated : this.state.currentWG, wgs: newWgs });
   }
-
+  
   joinWG(inviteCode: string, userId: string): WG {
-    // In einer echten App würde das über eine API laufen
-    // Hier simulieren wir das lokale Beitreten
+    // Simuliertes lokales Beitreten: erzeugt eine neue WG Instanz
     const wg: WG = {
       id: generateId(),
       name: 'Demo WG',
@@ -232,7 +269,6 @@ export class DataManager {
         }
       }
     };
-
     this.updateState({ currentWG: wg, wgs: { ...(this.state.wgs || {}), [wg.id]: wg } });
     return wg;
   }
