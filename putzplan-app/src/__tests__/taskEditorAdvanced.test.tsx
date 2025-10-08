@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from '../App.jsx';
 
 async function enterDashboard() {
@@ -73,11 +73,38 @@ describe('Task Editor Advanced', () => {
     const toggle = screen.getByTestId('toggle-emoji-picker');
     fireEvent.click(toggle);
     const picker = await screen.findByTestId('emoji-picker');
+    // grid layout present
+    expect(screen.getByTestId('emoji-grid').children.length).toBeGreaterThan(5);
     const firstOption = picker.querySelector('button');
     if (!firstOption) throw new Error('No emoji option');
     const chosen = firstOption.textContent;
     fireEvent.click(firstOption);
     expect(screen.getByTestId('current-emoji').textContent).toBe(chosen);
+  });
+
+  it('allows deleting an existing task from the list', async () => {
+    render(<App />);
+    await enterDashboard();
+    await openEditor();
+    createBasicTask('DeleteMe');
+    await screen.findByTestId('add-task-btn');
+    openEditor();
+  const list = await screen.findByTestId('task-list');
+  expect(list.textContent).toMatch(/DeleteMe/);
+  // find the specific list item containing DeleteMe
+  const deleteItem = Array.from(list.querySelectorAll('li')).find(li=> /DeleteMe/.test(li.textContent||''));
+  if (!deleteItem) throw new Error('List item with DeleteMe not found');
+  const deleteBtn = deleteItem.querySelector('[data-testid^="delete-task-"]') as HTMLButtonElement | null;
+  if (!deleteBtn) throw new Error('Delete button for DeleteMe not found');
+    // mock confirm
+    // @ts-ignore
+    window.confirm = () => true;
+    fireEvent.click(deleteBtn);
+    // wait for list item removal
+    await waitFor(() => {
+      const latestList = screen.getByTestId('task-list');
+      expect(latestList).not.toHaveTextContent(/DeleteMe/);
+    });
   });
 
   it('min interval input enforces lower bound of 1', async () => {

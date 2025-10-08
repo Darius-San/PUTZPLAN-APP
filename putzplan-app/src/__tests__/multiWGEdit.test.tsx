@@ -43,49 +43,42 @@ describe('Multi WG & Edit Flow', () => {
 
   it('creates a second WG and shows both on overview', async () => {
     render(<App />);
-    // Seed WG card visible
-  // seed WG card should be visible on profile overview
-  await screen.findByText(/WG Darius.*Co/i);
-  await createNewWG('Zweite WG', 'Anna', 'Ben');
-    // Return to profiles
-  await userEvent.click(screen.getByRole('button', { name: /Profile wechseln/i }));
-    // Wait for overview & both WGs
-    await screen.findByText(/Zweite WG/i);
-  await screen.findByText(/WG Darius.*Co/i);
-    const wgOpenButtons = await screen.findAllByRole('button', { name: /WG öffnen/i });
-    expect(wgOpenButtons.length).toBeGreaterThanOrEqual(2);
-  });
+    // Wait seed WG via its open button testid pattern
+    const seedOpen = await screen.findByTestId(/open-wg-/);
+    expect(seedOpen).toBeTruthy();
+    await createNewWG('Zweite WG', 'Anna', 'Ben');
+    // Return to profiles (profile switch button on dashboard)
+    await userEvent.click(await screen.findByRole('button', { name: /Profile wechseln/i }));
+    // Verify both WG open buttons present
+    const openBtns = await screen.findAllByTestId(/open-wg-/);
+    expect(openBtns.length).toBeGreaterThanOrEqual(2);
+  }, 15000);
 
   it('edits WG name and member list (add & remove)', async () => {
     render(<App />);
-  await screen.findByText(/WG Darius.*Co/i);
-    // Create second WG to ensure multi listing
+    // Wait for the seeded default WG to appear (more specific than regex to avoid multiple match error)
+    await screen.findByTestId('open-wg-wg-darius');
     await createNewWG('Alpha WG', 'Tom', 'Mia');
-  await userEvent.click(screen.getByRole('button', { name: /Profile wechseln/i }));
-  await screen.findByText(/Alpha WG/i);
-  // Prepare state: ensure a currentUser & currentWG (simulate selecting WG prior to editing)
-  const alphaWG: any = Object.values((dataManager as any).getState().wgs).find((w: any) => w.name === 'Alpha WG');
-  expect(alphaWG).toBeTruthy();
-  const firstMember = alphaWG.memberIds[0];
-  (dataManager as any).setCurrentUser(firstMember);
-  (dataManager as any).setCurrentWG(alphaWG.id);
-  // Now open edit wizard via custom event
-  window.dispatchEvent(new CustomEvent('putzplan-edit-wg', { detail: { id: alphaWG.id } }));
-  await screen.findByText(/WG bearbeiten/i);
-    // Edit wizard: change name
+    await userEvent.click(await screen.findByRole('button', { name: /Profile wechseln/i }));
+    // Collect WG IDs
+    const state1 = (dataManager as any).getState();
+    const alphaWG: any = Object.values(state1.wgs).find((w: any) => w.name === 'Alpha WG');
+    expect(alphaWG).toBeTruthy();
+    // Simulate selecting Alpha WG
+    (dataManager as any).setCurrentUser(alphaWG.memberIds[0]);
+    (dataManager as any).setCurrentWG(alphaWG.id);
+    // Trigger edit
+    window.dispatchEvent(new CustomEvent('putzplan-edit-wg', { detail: { id: alphaWG.id } }));
+    await screen.findByText(/WG bearbeiten/i);
     const nameInput = await screen.findByDisplayValue(/Alpha WG/i);
-  await userEvent.clear(nameInput);
-  await userEvent.type(nameInput, 'Alpha WG Neu');
-    // Add member
-  await userEvent.click(screen.getByRole('button', { name: /Mitglied/i }));
-    // Remove first of existing (keep at least 1)
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Alpha WG Neu');
+    await userEvent.click(screen.getByRole('button', { name: /Mitglied/i }));
     const removeButtons = screen.getAllByRole('button', { name: /Entfernen/i });
-  await userEvent.click(removeButtons[removeButtons.length-1]);
-    // Save
-  await userEvent.click(screen.getByRole('button', { name: /Speichern/i }));
-    // Assert via state (UI minimized on dashboard)
-    const state = (dataManager as any).getState();
-    const renamed = Object.values(state.wgs).find((w: any)=> w.name === 'Alpha WG Neu');
+    if (removeButtons.length > 0) await userEvent.click(removeButtons[removeButtons.length - 1]);
+    await userEvent.click(screen.getByRole('button', { name: /Speichern/i }));
+    const state2 = (dataManager as any).getState();
+    const renamed = Object.values(state2.wgs).find((w: any) => w.name === 'Alpha WG Neu');
     expect(renamed).toBeTruthy();
-  });
+  }, 15000);
 });

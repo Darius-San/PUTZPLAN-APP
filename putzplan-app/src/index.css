@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -107,6 +107,17 @@ html[data-ui-style='glass'] .badge { backdrop-filter: blur(6px); background: rgb
 /* Accent badge (uses gradient accent) */
 .badge-accent { background: var(--gradient-primary-accent); color:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.12); position:relative; }
 .badge-accent:after { content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(120deg,rgba(255,255,255,0.4),rgba(255,255,255,0)); mix-blend-mode:overlay; opacity:.4; }
+
+/* Absence member card active highlight (strong solid color override) */
+.member-card[data-active] {
+  background: linear-gradient(135deg,#f59e0b,#d97706) !important;
+  color:#fff !important;
+  border-color:#f59e0b !important;
+  box-shadow:0 6px 18px -4px rgba(217,119,6,0.45),0 2px 6px -2px rgba(0,0,0,0.25);
+  position:relative;
+}
+.member-card[data-active] div, .member-card[data-active] span { color:#fff; }
+.member-card[data-active] .badge, .member-card[data-active] [data-testid^='absence-count-'] { filter:none; }
 
 /* Dark mode polish overrides */
 :root[data-theme='dark'], [data-theme='dark'] body, [data-theme='dark'] {
@@ -255,6 +266,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Global modal background blur. We don't wrap the entire app in an overlay because
+   the modal portal sits at the end of body. Instead we mark body[data-modal-active]
+   and blur the main root (#root) while keeping the portal contents crisp. */
+body[data-modal-active] #root {
+  filter: blur(3px) saturate(0.8);
+  transition: filter 160ms ease;
+}
+body:not([data-modal-active]) #root { filter: none; }
+
+/* Reduced motion users: disable heavy blur for accessibility */
+@media (prefers-reduced-transparency: reduce), (prefers-reduced-motion: reduce) {
+  body[data-modal-active] #root { filter: none; }
+}
+
 /* Utility Classes */
 /* Map old utility names to tokens (partial) */
 .bg-white { background-color: var(--color-surface); }
@@ -297,6 +322,7 @@ body {
 
 .rounded-lg { border-radius: 0.5rem; }
 .rounded-full { border-radius: 9999px; }
+.rounded-2xl { border-radius: 1rem; }
 
 .shadow-sm { box-shadow: var(--shadow-sm); }
 .shadow-md { box-shadow: var(--shadow-md); }
@@ -342,6 +368,7 @@ body {
 .min-h-screen { min-height: 100vh; }
 .max-w-md { max-width: 28rem; }
 .max-w-4xl { max-width: 56rem; }
+.max-w-xl { max-width: 36rem; }
 
 .flex { display: flex; }
 .inline-flex { display: inline-flex; }
@@ -369,6 +396,7 @@ body {
 .space-x-3 > * + * { margin-left: 0.75rem; }
 
 .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .gap-4 { gap: 1rem; }
 
 .flex-1 { flex: 1 1 0%; }
@@ -436,3 +464,22 @@ button { font-family: inherit; }
     background-color: #f9f9f9;
   }
 }
+
+/* ===== Tally Stroke System (execution counts) ===== */
+.tally-group { position: relative; width: 16px; height: 16px; display:inline-block; margin:0 8px 0 2px; }
+.tally-strokes { position:absolute; inset:0; display:flex; justify-content:space-between; align-items:center; }
+.tally-stroke { width:2px; height:100%; background:#1e293b; border-radius:1px; display:block; }
+.tally-cross { position:absolute; inset:0; pointer-events:none; }
+.tally-cross-line { position:absolute; left:50%; top:-30%; width:2px; height:180%; background:#dc2626; transform:translateX(-50%) rotate(47deg); transform-origin:50% 50%; border-radius:1px; }
+.tally-single { width:2px; height:16px; background:#1e293b; display:inline-block; margin:0 3px; border-radius:1px; }
+.tally-empty { color:#94a3b8; }
+
+/* ================= Modal Accent Enhancements ================= */
+/* Applies when ModalPortal gets className="modal-accent" */
+div.modal-accent [data-testid='modal-overlay'] {
+  background: radial-gradient(circle at 30% 20%, rgba(255,212,160,0.35), rgba(0,0,0,0.55)) , rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px) saturate(1.1);
+}
+@keyframes modalPopIn { 0% { transform: translateY(12px) scale(.97); opacity:0; } 60% { transform: translateY(-2px) scale(1.005); opacity:1; } 100% { transform: translateY(0) scale(1); opacity:1; } }
+[data-modal-animate].animate-modal-in { animation: modalPopIn .38s cubic-bezier(.16,.84,.36,1); }
+
