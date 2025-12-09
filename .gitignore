@@ -34,3 +34,8 @@ temp_*.html
 
 # Node modules (if any)
 node_modules/
+
+# WAHA persistent data (WhatsApp sessions and media)
+sessions/
+media/
+data/waha/

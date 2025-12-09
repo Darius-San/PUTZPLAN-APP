@@ -1,0 +1,230 @@
+.container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #fafafa;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+  position: relative;
+}
+
+.backButton {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.header h1 {
+  color: #212121;
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem;
+  color: #757575;
+}
+
+.emptyState h2 {
+  margin-bottom: 1rem;
+  color: #212121;
+}
+
+.monthTabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.monthTab {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.monthTabHeader {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.monthTabHeader:hover {
+  background: #f5f5f5;
+}
+
+.monthTabHeader.expanded {
+  background: #e3f2fd;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.monthTitle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.monthName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #212121;
+}
+
+.monthSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #757575;
+}
+
+.monthSummary span:nth-child(odd) {
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.expandIcon {
+  color: #757575;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+
+.monthContent {
+  padding: 1.5rem;
+  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.compactStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.compactStatCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.compactStatLabel {
+  font-size: 0.9rem;
+  color: #757575;
+  font-weight: 500;
+}
+
+.compactStatValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1976d2;
+}
+
+.chartsSection {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chartContainer {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chartContainer h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #212121;
+  text-align: center;
+}
+
+.userStatsSection h3 {
+  margin: 0 0 1rem 0;
+  color: #212121;
+  font-size: 1.1rem;
+}
+
+.userStatsCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.userStatCompact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.userName {
+  font-weight: 600;
+  color: #212121;
+}
+
+.userStatNumbers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #757575;
+}
+
+.userStatNumbers span:nth-child(odd) {
+  color: #1976d2;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .chartsSection {
+    grid-template-columns: 1fr;
+  }
+  
+  .compactStats {
+    grid-template-columns: 1fr;
+  }
+}

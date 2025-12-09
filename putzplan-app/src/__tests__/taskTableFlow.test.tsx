@@ -6,7 +6,7 @@ import { describe, test, expect } from 'vitest';
 // Simple flow test: open WG -> open task table -> open first task -> select member -> confirm (if no checklist)
 
 describe('Task Table Flow', () => {
-  test('navigate and mark execution (dummy)', async () => {
+  test('navigate, verify points badges, and mark execution', async () => {
     render(<App />);
     const openBtn = await screen.findByTestId(/open-wg-/);
     fireEvent.click(openBtn);
@@ -17,7 +17,15 @@ describe('Task Table Flow', () => {
     fireEvent.click(ttBtn);
     await screen.findByTestId('task-table');
 
-    const taskButtons = screen.getAllByRole('button', { name: /P$/ }); // heuristic includes points chip
+    // Prüfe dass jede Task-Row eine Punkte-Badge besitzt (data-testid=task-points-<id>)
+    const pointBadges = screen.getAllByTestId(/task-points-/);
+    expect(pointBadges.length).toBeGreaterThan(0);
+    pointBadges.forEach(el => {
+      // Minimal: Inhalt endet mit <Zahl>P oder Platzhalter '…P'
+      expect(/(\d+|…|\?)P$/.test(el.textContent || '')).toBe(true);
+    });
+
+    const taskButtons = screen.getAllByTestId(/tt-task-/);
     if (taskButtons.length === 0) return; // No tasks seeded maybe
     fireEvent.click(taskButtons[0]);
 

@@ -332,11 +332,30 @@ export function seedDemoData(options: SeedOptions = {}) {
   }
   const seedState = variant === 'darius' ? buildSeedStateDarius() : buildSeedStateBasic();
   dataManager.importData(JSON.stringify({ data: seedState }));
+  
+  // WICHTIG: Nach dem Import die Punkte basierend auf den Bewertungen neu berechnen
+  // Das stellt sicher, dass die Demo-WG genauso funktioniert wie normale WGs
+  console.log(`[seed] Recalculating task points after demo data import...`);
+  dataManager.recalculateTaskPoints();
+  
   localStorage.setItem(seededFlagKey, '1');
   console.log(`[seed] Demo dataset applied (variant=${variant})`);
 }
 
+// Optional: allow tests or environments to suppress automatic seeding.
+// Mechanisms:
+// 1. window.__PUTZPLAN_DISABLE_SEED = true
+// 2. URL hash contains 'no-seed'
+// 3. localStorage key 'putzplan-disable-seed' is set to '1'
+declare global { interface Window { __PUTZPLAN_DISABLE_SEED?: boolean; } }
 export function ensureSeed(variant: 'basic' | 'darius' = 'darius') {
+  try {
+    const hash = typeof window !== 'undefined' ? window.location?.hash || '' : '';
+    const disabled = (typeof window !== 'undefined' && (window.__PUTZPLAN_DISABLE_SEED)) ||
+      hash.includes('no-seed') ||
+      (typeof localStorage !== 'undefined' && localStorage.getItem('putzplan-disable-seed') === '1');
+    if (disabled) return; // do nothing, test wants empty state
+  } catch {/* ignore env errors */}
   const st = dataManager.getState();
   if (Object.keys(st.users).length === 0 && Object.keys(st.tasks).length === 0) {
     seedDemoData({ variant });

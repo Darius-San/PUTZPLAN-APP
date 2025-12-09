@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  waha:
+    image: devlikeapro/waha:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - WAHA_API_KEY=96ee37b1f3424e819e7a20dcfe0f6fee
+      - WAHA_SESSION_STORAGE=file
+    volumes:
+      - ./waha-sessions:/app/sessions
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

@@ -40,7 +40,7 @@ export const ThemeSwitcher: React.FC = () => {
           );
         })}
       </div>
-      <Button size="sm" variant="ghost" onClick={cycle}>Rotate</Button>
+      <Button size="sm" variant="ghost" onClick={cycle} data-testid="theme-switcher-cycle">Rotate</Button>
     </div>
   );
 };

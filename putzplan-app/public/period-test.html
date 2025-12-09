@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeitraum UI Test Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .test-controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .control-button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .control-button.active {
+            background: #28a745;
+        }
+
+        .iframe-container {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+            display: block;
+        }
+
+        .screen-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .test-checklist {
+            padding: 20px;
+            background: white;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #28a745;
+        }
+
+        .checklist-item label {
+            flex: 1;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+            transition: all 0.2s;
+        }
+
+        .status-indicator.completed {
+            background: #28a745;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 Zeitraum UI Test Tool</h1>
+            <p>Teste die neue modulare Zeitraum-UI bei verschiedenen Bildschirmgrößen</p>
+        </div>
+
+        <div class="test-controls">
+            <div class="control-group">
+                <span><strong>Bildschirmgröße:</strong></span>
+                <button class="control-button active" onclick="setScreenSize('desktop', this)">
+                    🖥️ Desktop (1200px)
+                </button>
+                <button class="control-button" onclick="setScreenSize('tablet', this)">
+                    📱 Tablet (768px)
+                </button>
+                <button class="control-button" onclick="setScreenSize('mobile', this)">
+                    📱 Mobile (375px)
+                </button>
+                <button class="control-button" onclick="setScreenSize('wide', this)">
+                    🖥️ Ultrawide (1600px)
+                </button>
+            </div>
+        </div>
+
+        <div class="iframe-container" id="iframe-container">
+            <iframe 
+                src="http://localhost:5173/" 
+                class="iframe" 
+                id="test-iframe"
+                title="Putzplan App Test"
+            ></iframe>
+            <div class="screen-info" id="screen-info">
+                Desktop: 1200px
+            </div>
+        </div>
+
+        <div class="test-checklist">
+            <h3>📋 Test Checkliste</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            
+            <div class="checklist-item">
+                <input type="checkbox" id="test-1" onchange="updateProgress()">
+                <label for="test-1">✨ Period Creation Box ist klar getrennt und sichtbar</label>
+                <div class="status-indicator" id="status-1"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-2" onchange="updateProgress()">
+                <label for="test-2">📊 Period Selection Box ist separat und übersichtlich</label>
+                <div class="status-indicator" id="status-2"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-3" onchange="updateProgress()">
+                <label for="test-3">📈 Period Info Box zeigt aktuelle Statistiken</label>
+                <div class="status-indicator" id="status-3"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-4" onchange="updateProgress()">
+                <label for="test-4">🖥️ Desktop Layout (1200px) funktioniert korrekt</label>
+                <div class="status-indicator" id="status-4"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-5" onchange="updateProgress()">
+                <label for="test-5">📱 Tablet Layout (768px) ist responsive</label>
+                <div class="status-indicator" id="status-5"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-6" onchange="updateProgress()">
+                <label for="test-6">📱 Mobile Layout (375px) ist nutzbar</label>
+                <div class="status-indicator" id="status-6"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-7" onchange="updateProgress()">
+                <label for="test-7">🖥️ Ultrawide Layout (1600px) nutzt Platz optimal</label>
+                <div class="status-indicator" id="status-7"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-8" onchange="updateProgress()">
+                <label for="test-8">📅 Neuen Zeitraum erstellen funktioniert</label>
+                <div class="status-indicator" id="status-8"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-9" onchange="updateProgress()">
+                <label for="test-9">🔄 Zwischen Zeiträumen wechseln funktioniert</label>
+                <div class="status-indicator" id="status-9"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-10" onchange="updateProgress()">
+                <label for="test-10">📊 Historische Zeiträume anzeigen funktioniert</label>
+                <div class="status-indicator" id="status-10"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-11" onchange="updateProgress()">
+                <label for="test-11">⚠️ Überlappende Zeiträume werden erkannt und angezeigt</label>
+                <div class="status-indicator" id="status-11"></div>
+            </div>
+
+            <div class="checklist-item">
+                <input type="checkbox" id="test-12" onchange="updateProgress()">
+                <label for="test-12">🔄 Daten zurücksetzen Modal funktioniert korrekt</label>
+                <div class="status-indicator" id="status-12"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setScreenSize(size, button) {
+            const container = document.getElementById('iframe-container');
+            const iframe = document.getElementById('test-iframe');
+            const info = document.getElementById('screen-info');
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.control-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
+
+            let width, description;
+            switch(size) {
+                case 'mobile':
+                    width = '375px';
+                    description = 'Mobile: 375px';
+                    break;
+                case 'tablet':
+                    width = '768px';
+                    description = 'Tablet: 768px';
+                    break;
+                case 'desktop':
+                    width = '1200px';
+                    description = 'Desktop: 1200px';
+                    break;
+                case 'wide':
+                    width = '1600px';
+                    description = 'Ultrawide: 1600px';
+                    break;
+                default:
+                    width = '100%';
+                    description = 'Full Width';
+            }
+
+            container.style.maxWidth = width;
+            container.style.margin = '0 auto';
+            info.textContent = description;
+        }
+
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const totalItems = checkboxes.length;
+            let completedItems = 0;
+
+            checkboxes.forEach((checkbox, index) => {
+                const statusIndicator = document.getElementById(`status-${index + 1}`);
+                
+                if (checkbox.checked) {
+                    completedItems++;
+                    statusIndicator.classList.add('completed');
+                } else {
+                    statusIndicator.classList.remove('completed');
+                }
+            });
+
+            const progressPercentage = (completedItems / totalItems) * 100;
+            const progressFill = document.getElementById('progress-fill');
+            progressFill.style.width = progressPercentage + '%';
+
+            // Update page title with progress
+            document.title = `Zeitraum UI Test Tool (${completedItems}/${totalItems} ✓)`;
+        }
+
+        // Initialize
+        updateProgress();
+
+        // Auto-refresh iframe every 30 seconds to catch updates
+        setInterval(() => {
+            const iframe = document.getElementById('test-iframe');
+            iframe.contentWindow.location.reload();
+        }, 30000);
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                const iframe = document.getElementById('test-iframe');
+                iframe.contentWindow.location.reload();
+            }
+            
+            if (e.key >= '1' && e.key <= '4') {
+                e.preventDefault();
+                const sizes = ['desktop', 'tablet', 'mobile', 'wide'];
+                const buttons = document.querySelectorAll('.control-button');
+                const sizeIndex = parseInt(e.key) - 1;
+                
+                if (sizeIndex < sizes.length) {
+                    setScreenSize(sizes[sizeIndex], buttons[sizeIndex]);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

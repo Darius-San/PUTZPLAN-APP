@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Putzplan App Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .status-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        .warning { border-left: 4px solid #ffc107; }
+        .info { border-left: 4px solid #17a2b8; }
+        
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="status-box info">
+        <h1>🔧 Putzplan App Debug</h1>
+        <p>Debug-Tool für die Putzplan App und Persistence-Tests</p>
+        <p><strong>App URL:</strong> <a href="http://localhost:5173/" target="_blank">http://localhost:5173/</a></p>
+    </div>
+    
+    <div class="status-box" id="appStatus">
+        <h2>📱 App Status</h2>
+        <div id="statusContent">Prüfe App-Status...</div>
+    </div>
+    
+    <div class="status-box" id="testContainer">
+        <h2>🧪 Persistence Test</h2>
+        <button onclick="runQuickTest()" id="testBtn">Quick Test starten</button>
+        <button onclick="checkAfterReload()" id="checkBtn">Nach F5 prüfen</button>
+        <div id="testResults"></div>
+    </div>
+    
+    <div class="status-box">
+        <h2>🖥️ App Preview</h2>
+        <iframe src="http://localhost:5173/" id="appFrame"></iframe>
+    </div>
+    
+    <script>
+        let testPeriodId = null;
+        
+        function updateStatus(message, type = 'info') {
+            const container = document.getElementById('appStatus');
+            const content = document.getElementById('statusContent');
+            container.className = 'status-box ' + type;
+            content.innerHTML = message;
+        }
+        
+        function addTestResult(message) {
+            const results = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.innerHTML = '<pre>' + new Date().toLocaleTimeString() + ': ' + message + '</pre>';
+            results.appendChild(div);
+        }
+        
+        async function checkAppStatus() {
+            updateStatus('Prüfe App-Verfügbarkeit...', 'info');
+            
+            try {
+                // Test if app is reachable
+                const response = await fetch('http://localhost:5173/');
+                if (response.ok) {
+                    updateStatus('✅ App erreichbar auf http://localhost:5173/', 'success');
+                    
+                    // Try to access the iframe's dataManager
+                    const iframe = document.getElementById('appFrame');
+                    iframe.onload = function() {
+                        setTimeout(() => {
+                            try {
+                                if (iframe.contentWindow.dataManager) {
+                                    updateStatus('✅ App lädt korrekt - dataManager verfügbar', 'success');
+                                } else {
+                                    updateStatus('⚠️ App lädt aber dataManager nicht verfügbar (mögl. noch am Laden)', 'warning');
+                                }
+                            } catch (e) {
+                                updateStatus('⚠️ Kann nicht auf App-Inhalt zugreifen (Cross-Origin)', 'warning');
+                            }
+                        }, 2000);
+                    };
+                } else {
+                    updateStatus('❌ App nicht erreichbar - HTTP ' + response.status, 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ App-Server nicht verfügbar: ' + error.message, 'error');
+            }
+        }
+        
+        function runQuickTest() {
+            addTestResult('🧪 Starte Quick Test...');
+            
+            const iframe = document.getElementById('appFrame');
+            
+            try {
+                const appWindow = iframe.contentWindow;
+                
+                if (!appWindow.dataManager) {
+                    addTestResult('❌ dataManager nicht verfügbar in iframe');
+                    addTestResult('📋 MANUAL TEST: Gehe zu http://localhost:5173/ und führe folgenden Code aus:');
+                    addTestResult(`
+// === MANUAL TEST CODE ===
+const testStart = new Date();
+testStart.setHours(0,0,0,0);
+const testEnd = new Date(testStart.getTime() + 14*24*60*60*1000);
+
+localStorage.removeItem('putzplan-data');
+localStorage.removeItem('putzplan-sync');
+
+const period = dataManager.setCustomPeriod(testStart, testEnd, false);
+console.log('Period created:', period.id);
+sessionStorage.setItem('testPeriodId', period.id);
+
+setTimeout(() => {
+    const stored = localStorage.getItem('putzplan-data');
+    const data = JSON.parse(stored);
+    if (data.state?.currentPeriod?.id === period.id) {
+        console.log('✅ Saved to localStorage');
+        console.log('🎯 Now press F5 and run: checkAfterReload()');
+    } else {
+        console.log('❌ NOT saved to localStorage');
+    }
+}, 500);
+                    `);
+                    return;
+                }
+                
+                addTestResult('✅ dataManager verfügbar');
+                
+                // Clear storage
+                appWindow.localStorage.removeItem('putzplan-data');
+                appWindow.localStorage.removeItem('putzplan-sync');
+                addTestResult('🧹 Storage gelöscht');
+                
+                // Create period
+                const testStart = new Date();
+                testStart.setHours(0, 0, 0, 0);
+                const testEnd = new Date(testStart.getTime() + 14 * 24 * 60 * 60 * 1000);
+                
+                const period = appWindow.dataManager.setCustomPeriod(testStart, testEnd, false);
+                testPeriodId = period.id;
+                sessionStorage.setItem('testPeriodId', period.id);
+                
+                addTestResult('📅 Period erstellt: ' + period.id);
+                
+                // Check persistence
+                setTimeout(() => {
+                    const stored = appWindow.localStorage.getItem('putzplan-data');
+                    if (stored) {
+                        const data = JSON.parse(stored);
+                        if (data.state?.currentPeriod?.id === period.id) {
+                            addTestResult('✅ Period in localStorage gespeichert');
+                            addTestResult('🎯 Jetzt F5 drücken und "Nach F5 prüfen" klicken');
+                        } else {
+                            addTestResult('❌ Period NICHT in localStorage');
+                        }
+                    } else {
+                        addTestResult('❌ Kein localStorage data');
+                    }
+                }, 500);
+                
+            } catch (error) {
+                addTestResult('❌ Fehler: ' + error.message);
+                addTestResult('💡 Versuche den manuellen Test direkt in der App-Console');
+            }
+        }
+        
+        function checkAfterReload() {
+            const expectedId = sessionStorage.getItem('testPeriodId');
+            if (!expectedId) {
+                addTestResult('❌ Keine Test-Period-ID gefunden - führe zuerst den Test aus');
+                return;
+            }
+            
+            addTestResult('🔍 Prüfe Persistierung nach Reload...');
+            addTestResult('Erwartete ID: ' + expectedId);
+            
+            const iframe = document.getElementById('appFrame');
+            
+            try {
+                const appWindow = iframe.contentWindow;
+                
+                if (!appWindow.dataManager) {
+                    addTestResult('❌ dataManager nicht verfügbar nach Reload');
+                    return;
+                }
+                
+                const currentPeriod = appWindow.dataManager.getState().currentPeriod;
+                const currentId = currentPeriod?.id;
+                
+                addTestResult('Gefundene ID: ' + (currentId || 'null'));
+                
+                if (currentId === expectedId) {
+                    addTestResult('🎉 TEST ERFOLGREICH!');
+                    addTestResult('✅ Period hat Reload überlebt');
+                    addTestResult('✅ CrossBrowserSync-Fix funktioniert!');
+                    sessionStorage.removeItem('testPeriodId');
+                } else {
+                    addTestResult('❌ TEST FEHLGESCHLAGEN!');
+                    addTestResult('🚨 Period nach Reload verloren');
+                    
+                    // Debug
+                    const storage = appWindow.localStorage.getItem('putzplan-data');
+                    if (storage) {
+                        const data = JSON.parse(storage);
+                        addTestResult('Debug - Storage Period: ' + (data.state?.currentPeriod?.id || 'null'));
+                    }
+                }
+                
+            } catch (error) {
+                addTestResult('❌ Fehler beim Check: ' + error.message);
+            }
+        }
+        
+        // Auto-start status check
+        checkAppStatus();
+        
+        // Refresh iframe button
+        const refreshBtn = document.createElement('button');
+        refreshBtn.textContent = '🔄 App neu laden';
+        refreshBtn.onclick = () => {
+            document.getElementById('appFrame').src = 'http://localhost:5173/';
+        };
+        document.getElementById('testContainer').appendChild(refreshBtn);
+    </script>
+</body>
+</html>

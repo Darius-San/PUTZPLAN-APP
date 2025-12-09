@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event-Sourcing System Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .test-button.danger:hover {
+            background: #c82333;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.success:hover {
+            background: #218838;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .event-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .event-item {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .event-item:last-child {
+            border-bottom: none;
+        }
+        .event-critical {
+            background: #fff5f5;
+            border-left: 4px solid #dc3545;
+        }
+        .event-action {
+            font-weight: bold;
+        }
+        .event-time {
+            font-size: 11px;
+            color: #6c757d;
+        }
+        .snapshot-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .snapshot-item {
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .snapshot-item:hover {
+            background: #f8f9fa;
+        }
+        .snapshot-trigger {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .snapshot-meta {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Event-Sourcing System Test</h1>
+    <p>Dieses Tool testet das Event-Sourcing und State-Restore System der Putzplan App.</p>
+
+    <!-- Test Actions Panel -->
+    <div class="test-panel">
+        <h2>🧪 Test Actions</h2>
+        <p>Führen Sie verschiedene Actions aus um Events und Snapshots zu generieren:</p>
+        
+        <button class="test-button" onclick="testCreateUser()">👤 User erstellen</button>
+        <button class="test-button" onclick="testCreateTask()">📋 Task erstellen</button>
+        <button class="test-button" onclick="testExecuteTask()">✅ Task ausführen</button>
+        <button class="test-button" onclick="testRateTask()">⭐ Task bewerten</button>
+        <button class="test-button danger" onclick="testDeleteUser()">🗑️ User löschen (Kritisch)</button>
+        <button class="test-button danger" onclick="testDeleteTask()">🗑️ Task löschen (Kritisch)</button>
+        <button class="test-button success" onclick="generateTestData()">🎲 Test-Daten generieren</button>
+        <button class="test-button" onclick="clearAllData()">🧹 Alle Daten löschen</button>
+    </div>
+
+    <!-- Statistics Panel -->
+    <div class="test-panel">
+        <h2>📊 Statistiken</h2>
+        <div class="stats" id="stats">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+    </div>
+
+    <!-- Events Panel -->
+    <div class="test-panel">
+        <h2>📝 Recent Events</h2>
+        <div class="event-list" id="eventList">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+    </div>
+
+    <!-- Snapshots Panel -->
+    <div class="test-panel">
+        <h2>📸 Snapshots</h2>
+        <div class="snapshot-list" id="snapshotList">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+    </div>
+
+    <!-- Restore Test Panel -->
+    <div class="test-panel">
+        <h2>🔄 State Restore Test</h2>
+        <p>Testen Sie die State-Wiederherstellung:</p>
+        <button class="test-button" onclick="testRestorePreview()">👁️ Restore Preview anzeigen</button>
+        <button class="test-button danger" onclick="testRestore()">🔄 State wiederherstellen (Simulation)</button>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="test-panel">
+        <h2>📋 Activity Log</h2>
+        <div class="log" id="log"></div>
+        <button class="test-button" onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        // Event-Sourcing Manager Import (Simulation)
+        // In der echten App würde das über das Module-System importiert
+        
+        let testEventSourcingManager;
+        let logContainer;
+
+        // Mock Event-Sourcing Manager für Test-Zwecke
+        function createMockEventSourcingManager() {
+            return {
+                events: [],
+                snapshots: [],
+                criticalActions: ['DELETE_USER', 'DELETE_TASK', 'BULK_DELETE', 'RESET_DATA'],
+                
+                logAction(action, data, userId, wgId) {
+                    const event = {
+                        id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                        timestamp: Date.now(),
+                        action,
+                        data,
+                        userId,
+                        wgId,
+                        metadata: {
+                            critical: this.criticalActions.includes(action),
+                            sessionId: 'test_session'
+                        }
+                    };
+                    
+                    this.events.push(event);
+                    
+                    // Snapshot bei kritischen Actions
+                    if (event.metadata.critical) {
+                        this.createSnapshot(action);
+                    }
+                    
+                    log(`✅ Action logged: ${action}`, event);
+                    return event.id;
+                },
+                
+                createSnapshot(triggerEvent) {
+                    const snapshot = {
+                        id: 'snap_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                        timestamp: Date.now(),
+                        triggerEvent,
+                        state: {
+                            users: { test_user: { name: 'Test User' } },
+                            tasks: { test_task: { title: 'Test Task' } },
+                            testData: true
+                        },
+                        metadata: {
+                            version: '1.0',
+                            size: Math.floor(Math.random() * 5000) + 1000
+                        }
+                    };
+                    
+                    this.snapshots.push(snapshot);
+                    log(`📸 Snapshot created: ${triggerEvent}`, snapshot);
+                    return snapshot.id;
+                },
+                
+                getEvents(limit = 20) {
+                    return [...this.events].reverse().slice(0, limit);
+                },
+                
+                getSnapshots(limit = 10) {
+                    return [...this.snapshots].reverse().slice(0, limit);
+                },
+                
+                generateRestorePreview(snapshotId) {
+                    const snapshot = this.snapshots.find(s => s.id === snapshotId);
+                    if (!snapshot) throw new Error('Snapshot not found');
+                    
+                    const lostActions = this.events.filter(e => e.timestamp > snapshot.timestamp);
+                    const totalChanges = Math.floor(Math.random() * 20) + 5;
+                    
+                    return {
+                        targetSnapshot: snapshot,
+                        affectedData: {
+                            users: { added: 2, modified: 3, removed: 1 },
+                            tasks: { added: 1, modified: 2, removed: 0 },
+                            wgs: { added: 0, modified: 1, removed: 0 },
+                            ratings: { added: 5, modified: 3, removed: 2 }
+                        },
+                        lostActions,
+                        riskLevel: totalChanges > 15 ? 'high' : totalChanges > 8 ? 'medium' : 'low'
+                    };
+                },
+                
+                getStats() {
+                    const now = Date.now();
+                    const last24h = now - (24 * 60 * 60 * 1000);
+                    
+                    return {
+                        totalEvents: this.events.length,
+                        totalSnapshots: this.snapshots.length,
+                        eventsLast24h: this.events.filter(e => e.timestamp > last24h).length,
+                        criticalEvents: this.events.filter(e => e.metadata.critical).length,
+                        averageSnapshotSize: this.snapshots.length > 0 ? 
+                            this.snapshots.reduce((sum, s) => sum + s.metadata.size, 0) / this.snapshots.length : 0
+                    };
+                },
+                
+                generateTestData() {
+                    const actions = ['CREATE_USER', 'CREATE_TASK', 'EXECUTE_TASK', 'RATE_TASK', 'UPDATE_USER'];
+                    for (let i = 0; i < 15; i++) {
+                        const action = actions[Math.floor(Math.random() * actions.length)];
+                        this.logAction(action, { test: true, index: i }, 'user_' + (i % 3), 'wg_test');
+                    }
+                    
+                    // Einige kritische Actions
+                    this.logAction('DELETE_USER', { userId: 'user_1' });
+                    this.logAction('DELETE_TASK', { taskId: 'task_1' });
+                    
+                    log('🎲 Test data generated');
+                },
+                
+                clearAllData() {
+                    this.events = [];
+                    this.snapshots = [];
+                    log('🧹 All data cleared');
+                }
+            };
+        }
+
+        // Logging function
+        function log(message, data = null) {
+            if (!logContainer) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            if (data) {
+                const details = document.createElement('pre');
+                details.style.marginTop = '5px';
+                details.style.fontSize = '11px';
+                details.style.color = '#6c757d';
+                details.textContent = JSON.stringify(data, null, 2);
+                logEntry.appendChild(details);
+            }
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Test functions
+        function testCreateUser() {
+            const userName = 'User_' + Math.random().toString(36).substr(2, 5);
+            testEventSourcingManager.logAction('CREATE_USER', { name: userName }, null, 'test_wg');
+            updateUI();
+        }
+
+        function testCreateTask() {
+            const taskTitle = 'Task_' + Math.random().toString(36).substr(2, 5);
+            testEventSourcingManager.logAction('CREATE_TASK', { title: taskTitle }, null, 'test_wg');
+            updateUI();
+        }
+
+        function testExecuteTask() {
+            testEventSourcingManager.logAction('EXECUTE_TASK', { taskId: 'task_1' }, 'user_1', 'test_wg');
+            updateUI();
+        }
+
+        function testRateTask() {
+            const rating = Math.floor(Math.random() * 5) + 1;
+            testEventSourcingManager.logAction('RATE_TASK', { taskId: 'task_1', rating }, 'user_1', 'test_wg');
+            updateUI();
+        }
+
+        function testDeleteUser() {
+            testEventSourcingManager.logAction('DELETE_USER', { userId: 'user_1' }, 'admin', 'test_wg');
+            updateUI();
+        }
+
+        function testDeleteTask() {
+            testEventSourcingManager.logAction('DELETE_TASK', { taskId: 'task_1' }, 'admin', 'test_wg');
+            updateUI();
+        }
+
+        function generateTestData() {
+            testEventSourcingManager.generateTestData();
+            updateUI();
+        }
+
+        function clearAllData() {
+            if (confirm('Alle Event-Sourcing Daten löschen?')) {
+                testEventSourcingManager.clearAllData();
+                updateUI();
+            }
+        }
+
+        function testRestorePreview() {
+            const snapshots = testEventSourcingManager.getSnapshots();
+            if (snapshots.length === 0) {
+                alert('Keine Snapshots verfügbar. Erstellen Sie zuerst eine kritische Action.');
+                return;
+            }
+            
+            try {
+                const preview = testEventSourcingManager.generateRestorePreview(snapshots[0].id);
+                log('👁️ Restore Preview generiert:', preview);
+                
+                const message = `
+Restore Preview für Snapshot: ${snapshots[0].triggerEvent}
+Risiko-Level: ${preview.riskLevel.toUpperCase()}
+
+Betroffene Daten:
+- Users: +${preview.affectedData.users.added} ~${preview.affectedData.users.modified} -${preview.affectedData.users.removed}
+- Tasks: +${preview.affectedData.tasks.added} ~${preview.affectedData.tasks.modified} -${preview.affectedData.tasks.removed}
+- WGs: +${preview.affectedData.wgs.added} ~${preview.affectedData.wgs.modified} -${preview.affectedData.wgs.removed}
+- Ratings: +${preview.affectedData.ratings.added} ~${preview.affectedData.ratings.modified} -${preview.affectedData.ratings.removed}
+
+Verlorene Actions: ${preview.lostActions.length}
+                `;
+                
+                alert(message);
+            } catch (error) {
+                log('❌ Preview Fehler:', error);
+                alert('Fehler: ' + error.message);
+            }
+        }
+
+        function testRestore() {
+            const snapshots = testEventSourcingManager.getSnapshots();
+            if (snapshots.length === 0) {
+                alert('Keine Snapshots verfügbar.');
+                return;
+            }
+            
+            const confirmText = `State vom ${new Date(snapshots[0].timestamp).toLocaleString()} wiederherstellen?\n\nDies ist nur eine Simulation - keine echten Daten werden verändert.\n\nTippen Sie "RESTORE" um zu bestätigen:`;
+            const confirmation = prompt(confirmText);
+            
+            if (confirmation === 'RESTORE') {
+                log('🔄 Restore Simulation gestartet...');
+                setTimeout(() => {
+                    log('✅ Restore Simulation abgeschlossen (kein echter Restore)');
+                    alert('✅ Restore-Simulation erfolgreich!');
+                }, 1000);
+            }
+        }
+
+        function clearLog() {
+            logContainer.innerHTML = '';
+        }
+
+        function updateUI() {
+            updateStats();
+            updateEventList();
+            updateSnapshotList();
+        }
+
+        function updateStats() {
+            const stats = testEventSourcingManager.getStats();
+            const statsContainer = document.getElementById('stats');
+            
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalEvents}</div>
+                    <div class="stat-label">Total Events</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalSnapshots}</div>
+                    <div class="stat-label">Snapshots</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.criticalEvents}</div>
+                    <div class="stat-label">Kritische Events</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${Math.round(stats.averageSnapshotSize / 1024)}KB</div>
+                    <div class="stat-label">Ø Snapshot-Größe</div>
+                </div>
+            `;
+        }
+
+        function updateEventList() {
+            const events = testEventSourcingManager.getEvents(15);
+            const eventList = document.getElementById('eventList');
+            
+            if (events.length === 0) {
+                eventList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">Keine Events verfügbar</div>';
+                return;
+            }
+            
+            eventList.innerHTML = events.map(event => {
+                const timeAgo = getTimeAgo(event.timestamp);
+                const isCritical = event.metadata.critical;
+                
+                return `
+                    <div class="event-item ${isCritical ? 'event-critical' : ''}">
+                        <div>
+                            <div class="event-action">${getEventIcon(event.action)} ${event.action}</div>
+                            <div class="event-time">${timeAgo} • ${event.userId || 'System'}</div>
+                        </div>
+                        <div>
+                            ${isCritical ? '<span style="color: #dc3545; font-weight: bold;">KRITISCH</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateSnapshotList() {
+            const snapshots = testEventSourcingManager.getSnapshots();
+            const snapshotList = document.getElementById('snapshotList');
+            
+            if (snapshots.length === 0) {
+                snapshotList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">Keine Snapshots verfügbar</div>';
+                return;
+            }
+            
+            snapshotList.innerHTML = snapshots.map(snapshot => {
+                const timeAgo = getTimeAgo(snapshot.timestamp);
+                const size = Math.round(snapshot.metadata.size / 1024);
+                
+                return `
+                    <div class="snapshot-item" onclick="selectSnapshot('${snapshot.id}')">
+                        <div class="snapshot-trigger">📸 ${snapshot.triggerEvent}</div>
+                        <div class="snapshot-meta">${timeAgo} • ${size}KB • ${new Date(snapshot.timestamp).toLocaleString()}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectSnapshot(snapshotId) {
+            try {
+                const preview = testEventSourcingManager.generateRestorePreview(snapshotId);
+                log('📸 Snapshot ausgewählt:', { snapshotId, preview });
+                alert(`Snapshot ausgewählt!\nVerlorene Actions: ${preview.lostActions.length}\nRisiko: ${preview.riskLevel}`);
+            } catch (error) {
+                log('❌ Snapshot Fehler:', error);
+            }
+        }
+
+        function getEventIcon(action) {
+            if (action.includes('DELETE')) return '🗑️';
+            if (action.includes('CREATE')) return '➕';
+            if (action.includes('UPDATE')) return '✏️';
+            if (action.includes('EXECUTE')) return '✅';
+            if (action.includes('RATE')) return '⭐';
+            return '📝';
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            const minutes = Math.floor(diff / (1000 * 60));
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (minutes < 1) return 'gerade eben';
+            if (minutes < 60) return `vor ${minutes} min`;
+            if (hours < 24) return `vor ${hours} h`;
+            return `vor ${days} Tagen`;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('log');
+            testEventSourcingManager = createMockEventSourcingManager();
+            
+            log('🔄 Event-Sourcing Test System gestartet');
+            log('ℹ️ Dies ist eine Simulation des Event-Sourcing Systems');
+            
+            updateUI();
+        });
+    </script>
+</body>
+</html>

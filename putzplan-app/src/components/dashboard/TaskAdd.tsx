@@ -9,7 +9,7 @@ interface Props {
 }
 
 export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
-  const { createTask, updateTask, state } = usePutzplanStore() as any;
+  const { createTask, updateTask, deleteTask, state, debugMode } = usePutzplanStore() as any;
   const { tasks, currentWG } = state;
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -107,6 +107,46 @@ export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
             <Button variant="ghost" size="sm" onClick={onBack}>Zurück</Button>
             {editingTaskId && <Button variant="outline" size="sm" onClick={resetForm} data-testid="cancel-edit-btn">Neu</Button>}
             <Button size="sm" disabled={!canSave || saving} onClick={handleSave}>{editingTaskId ? 'Änderungen speichern' : 'Task speichern'}</Button>
+            {debugMode && (
+              <Button size="sm" variant="outline" data-testid="debug-prefill-task" onClick={() => {
+                // Mehrere realistische Demo-Tasks erzeugen (jede Betätigung kann neue hinzufügen)
+                const names = [
+                  'Küche putzen', 'Müll rausbringen', 'Staubsaugen', 'Einkauf erledigen',
+                  'Bad reinigen', 'Fenster putzen', 'Boden wischen', 'Pflanzen gießen',
+                  'Essbereich aufräumen', 'Herd entfetten', 'Spülmaschine ausräumen', 'Wäsche waschen'
+                ];
+                const wgMembers: string[] = state.currentWG ? state.currentWG.memberIds : [];
+                const existingTitles = new Set(Object.values(state.tasks).map((t:any)=> t.title));
+                const toCreate = Math.min(8, Math.max(3, Math.floor(Math.random()*6)+3)); // 3-8
+                let created = 0;
+                for (let i = 0; i < names.length && created < toCreate; i++) {
+                  const baseTitle = names[i];
+                  if (existingTitles.has(baseTitle)) continue; // keine Duplikate
+                  const diff = 2 + (i % 6);
+                  const unpl = 2 + (i % 5);
+                  const emojis = ['🧽','🗑️','🧹','🛒','🛁','🪟','🧴','🌱','🍽️','🧺'];
+                  const emoji = emojis[i % emojis.length];
+                  const t = createTask({
+                    title: baseTitle,
+                    description: 'Automatisch generierter Debug-Demo-Task',
+                    emoji,
+                    category: TaskCategory.GENERAL,
+                    timeEstimate: 15 + (i*3)%25,
+                    difficultyScore: diff,
+                    unpleasantnessScore: unpl,
+                    maxDaysBetween: 7 + (i % 7),
+                    requiresPhoto: false,
+                    minDaysBetween: (i % 2) ? undefined : 2
+                  });
+                  // Optionale Checkliste & zufällige pseudo-Zuweisung (nur als Metadatum gespeichert)
+                  const checklist = (i % 2 === 0) ? ['Vorbereiten','Durchführen','Kontrolle'] : undefined;
+                  const assignedUserId = wgMembers.length ? wgMembers[Math.floor(Math.random()*wgMembers.length)] : undefined;
+                  updateTask(t.id, { checklist, assignedUserId });
+                  existingTitles.add(baseTitle);
+                  created++;
+                }
+              }}>Demo Tasks</Button>
+            )}
           </div>
         </div>
       </header>
@@ -122,20 +162,21 @@ export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
                 <span className="text-xl" data-testid="current-emoji">{emoji}</span>
               </label>
               {emojiOpen && (
-                <div className="border rounded p-2 bg-white shadow-sm max-h-48 overflow-auto grid grid-cols-8 gap-1" data-testid="emoji-picker">
-                  {emojiOptions.map(e => (
-                    <button
-                      key={e}
-                      type="button"
-                      data-testid={`emoji-option-${e}`}
-                      onClick={()=> { setEmoji(e); setEmojiOpen(false); }}
-                      className={`text-xl p-1 rounded hover:bg-slate-100 ${e===emoji ? 'ring-2 ring-indigo-500' : ''}`}
-                      aria-label={`Icon ${e}`}
-                    >{e}</button>
-                  ))}
+                <div className="border rounded bg-white shadow-sm p-2" data-testid="emoji-picker">
+                  <div className="flex flex-wrap gap-1 max-h-52 overflow-auto" data-testid="emoji-grid">
+                    {emojiOptions.map(e => (
+                      <button
+                        key={e}
+                        type="button"
+                        data-testid={`emoji-option-${e}`}
+                        onClick={()=> { setEmoji(e); setEmojiOpen(false); }}
+                        className={`w-9 h-9 flex items-center justify-center text-xl rounded-md border hover:bg-slate-50 active:scale-95 transition ${e===emoji ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-400' : 'border-slate-200'}`}
+                        aria-label={`Icon ${e}`}
+                      >{e}</button>
+                    ))}
+                  </div>
                 </div>
               )}
-              <Input label="Direkt eingeben" value={emoji} maxLength={4} onChange={e=> setEmoji(e.target.value)} />
             </div>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
@@ -179,13 +220,18 @@ export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
             {filteredTasks.length > 0 && (
               <ul className="divide-y" data-testid="task-list">
                 {filteredTasks.map((t: any)=> (
-                  <li key={t.id} className="py-2 flex items-center gap-3">
+                  <li key={t.id} className="py-2 flex items-center gap-3 group">
                     <span className="text-xl" aria-hidden>{t.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{t.title}</div>
                       {t.constraints?.minDaysBetween && <div className="text-[10px] text-slate-500">min {t.constraints.minDaysBetween} Tage</div>}
                     </div>
-                    <Button size="sm" variant={editingTaskId===t.id? 'primary':'outline'} onClick={()=> startEdit(t)} data-testid={`edit-task-${t.id}`}>{editingTaskId===t.id? 'Aktiv' : 'Edit'}</Button>
+                    <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition">
+                      <Button size="sm" variant={editingTaskId===t.id? 'primary':'outline'} onClick={()=> startEdit(t)} data-testid={`edit-task-${t.id}`}>{editingTaskId===t.id? 'Aktiv' : 'Edit'}</Button>
+                      <Button size="sm" variant="outline" data-testid={`delete-task-${t.id}`} onClick={()=> { if (confirm('Task wirklich löschen?')) { const wasEditing = editingTaskId===t.id; deleteTask(t.id); if (wasEditing) resetForm(); } }}>
+                        Del
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>

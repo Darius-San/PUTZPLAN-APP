@@ -11,10 +11,10 @@ interface WGCreationWizardProps {
 
 // Steps: 0 Name, 1 Size, 2 Members, 3 Summary
 export const WGCreationWizard: React.FC<WGCreationWizardProps> = ({ onComplete, onCancel }) => {
-  const { createWG, createUser } = usePutzplanStore() as any;
+  const { createWG, createUser, debugMode } = usePutzplanStore() as any;
   const [step, setStep] = useState(0);
   const [wgName, setWgName] = useState('');
-  const [size, setSize] = useState(3);
+  const [size, setSize] = useState(debugMode ? 1 : 2); // Debug-Modus: Start mit 1 Mitglied
   const [memberDrafts, setMemberDrafts] = useState<{ name: string; avatar: string }[]>([]);
   const [touched, setTouched] = useState(false);
   const maxSize = 12;
@@ -43,10 +43,12 @@ export const WGCreationWizard: React.FC<WGCreationWizardProps> = ({ onComplete, 
 
   const sizeError = useMemo(() => {
     if (step !== 1) return '';
-    if (size < 1) return 'Mindestens 1 Mitglied';
+    // Im Debug-Modus: 1 Mitglied erlaubt, sonst mindestens 2
+    const minSize = debugMode ? 1 : 2;
+    if (size < minSize) return debugMode ? 'Mindestens 1 Mitglied' : 'Mindestens 2 Mitglieder';
     if (size > maxSize) return `Maximal ${maxSize} Mitglieder`;
     return '';
-  }, [size, step]);
+  }, [size, step, debugMode]);
 
   const memberErrors = useMemo(() => {
     if (step !== 2) return [] as string[];
@@ -92,6 +94,16 @@ export const WGCreationWizard: React.FC<WGCreationWizardProps> = ({ onComplete, 
       });
       createdUsers.push(user.id);
     });
+    // Persist memberIds and optional whatsapp contacts
+    // Collect whatsappContact values from DOM-managed drafts (we'll persist as empty if not provided)
+    const membersWithContacts = memberDrafts.map((m, i) => ({ name: m.name.trim(), avatar: m.avatar, whatsappContact: (m as any).whatsappContact || '' }));
+    // First ensure users have whatsappContact updated in dataManager
+    membersWithContacts.forEach((mData, i) => {
+      const uid = createdUsers[i];
+      if (mData.whatsappContact) {
+        dataManager.updateUser(uid, { whatsappContact: mData.whatsappContact });
+      }
+    });
     dataManager.updateWG(wg.id, { memberIds: createdUsers });
     // Nach createUser ist automatisch der zuletzt erstellte User currentUser; akzeptieren wir (oder bevorzugt ersten?)
     // Optional: Wenn wir den ersten bevorzugen: dataManager.setCurrentUser(createdUsers[0]);
@@ -125,7 +137,12 @@ export const WGCreationWizard: React.FC<WGCreationWizardProps> = ({ onComplete, 
         {step === 1 && (
           <div className="space-y-4" data-testid="step-size">
             <label className="block text-sm font-medium text-slate-700">Anzahl Mitglieder</label>
-            <Input type="number" min={1} max={maxSize} value={size} onChange={e => setSize(Number(e.target.value))} />
+            {debugMode && (
+              <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border">
+                🐛 Debug-Modus: Einzelperson-WG erlaubt (für Tests)
+              </div>
+            )}
+            <Input type="number" min={debugMode ? 1 : 2} max={maxSize} value={size} onChange={e => setSize(Number(e.target.value))} />
             {sizeError && <div className="text-red-600 text-sm" role="alert">{sizeError}</div>}
           </div>
         )}

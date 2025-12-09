@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug State Restore Problem</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #444; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        .log { background: #2d2d2d; padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .state-display { background: #2d2d2d; padding: 10px; border-radius: 4px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug: State Restore Problem</h1>
+    
+    <div class="section">
+        <h3>1. Setup</h3>
+        <button class="btn-primary" onclick="initializeTestEnvironment()">Initialize Test Environment</button>
+        <button class="btn-warning" onclick="clearAllData()">Clear All Data</button>
+    </div>
+
+    <div class="section">
+        <h3>2. Reproduce User Issue</h3>
+        <button class="btn-success" onclick="executeTask1()">Execute Task 1 (Create Snapshot)</button>
+        <button class="btn-success" onclick="executeTask2()">Execute Task 2 (Create Snapshot)</button>
+        <button class="btn-danger" onclick="restoreToSnapshot1()">Restore to Snapshot 1</button>
+    </div>
+
+    <div class="section">
+        <h3>3. Current State</h3>
+        <button class="btn-primary" onclick="showCurrentState()">Show Current State</button>
+        <button class="btn-primary" onclick="showSnapshots()">Show All Snapshots</button>
+        <div id="currentState" class="state-display"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. Debug Log</h3>
+        <button class="btn-warning" onclick="clearLog()">Clear Log</button>
+        <div id="debugLog" class="log"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let dataManager = null;
+        let eventSourcingManager = null;
+        let snapshots = [];
+
+        function log(message, data = null) {
+            const timestamp = new Date().toISOString().substr(11, 12);
+            const logDiv = document.getElementById('debugLog');
+            const entry = document.createElement('div');
+            entry.style.marginBottom = '5px';
+            entry.innerHTML = `<span style="color: #666">[${timestamp}]</span> ${message}`;
+            if (data) {
+                entry.innerHTML += `<div style="margin-left: 20px; color: #ccc;">${JSON.stringify(data, null, 2)}</div>`;
+            }
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+
+        function initializeTestEnvironment() {
+            log('🚀 Initializing test environment...');
+            
+            // Load the actual app modules (simulate)
+            if (typeof window !== 'undefined') {
+                // Try to access real dataManager if available
+                dataManager = window.dataManager;
+                eventSourcingManager = window.eventSourcingManager;
+                
+                if (dataManager && eventSourcingManager) {
+                    log('✅ Found real dataManager and eventSourcingManager');
+                    
+                    // Ensure we have test data
+                    const state = dataManager.getState();
+                    if (!state.currentUser || !state.currentWG) {
+                        log('⚠️ No user/WG found, creating test data...');
+                        // Create basic test setup
+                        createTestData();
+                    } else {
+                        log('✅ User and WG already exist', {
+                            user: state.currentUser.name,
+                            wg: state.currentWG.name,
+                            tasks: Object.keys(state.tasks).length,
+                            executions: Object.keys(state.executions).length
+                        });
+                    }
+                } else {
+                    log('❌ DataManager or EventSourcingManager not available');
+                    log('Make sure the app is loaded and accessible');
+                }
+            }
+        }
+
+        function createTestData() {
+            if (!dataManager) {
+                log('❌ DataManager not available');
+                return;
+            }
+
+            // Create test user and WG if needed
+            try {
+                const wg = dataManager.createWG({
+                    name: 'Debug Test WG',
+                    description: 'Test WG for debugging state restore'
+                });
+                
+                const user = dataManager.createUser({
+                    name: 'Debug User',
+                    email: 'debug@test.com',
+                    targetMonthlyPoints: 100
+                });
+
+                // Create test tasks
+                const task1 = dataManager.createTask({
+                    title: 'Test Task 1',
+                    description: 'First test task for debugging',
+                    room: 'Kitchen',
+                    basePoints: 10,
+                    difficultyScore: 1,
+                    unpleasantnessScore: 1
+                });
+
+                const task2 = dataManager.createTask({
+                    title: 'Test Task 2', 
+                    description: 'Second test task for debugging',
+                    room: 'Bathroom',
+                    basePoints: 15,
+                    difficultyScore: 2,
+                    unpleasantnessScore: 2
+                });
+
+                log('✅ Created test data', {
+                    wg: wg.name,
+                    user: user.name,
+                    tasks: [task1.title, task2.title]
+                });
+
+            } catch (error) {
+                log('❌ Error creating test data:', error.message);
+            }
+        }
+
+        function executeTask1() {
+            if (!dataManager || !eventSourcingManager) {
+                log('❌ Managers not available');
+                return;
+            }
+
+            try {
+                log('🎯 Step 1: Executing Task 1...');
+                
+                const state = dataManager.getState();
+                const tasks = Object.values(state.tasks);
+                
+                if (tasks.length === 0) {
+                    log('❌ No tasks available. Run Initialize first.');
+                    return;
+                }
+
+                const task1 = tasks[0];
+                log('📝 Found task:', { id: task1.id, title: task1.title });
+
+                // Capture state BEFORE execution
+                const stateBefore = dataManager.getState();
+                log('📊 State before execution:', {
+                    executions: Object.keys(stateBefore.executions).length,
+                    userPoints: stateBefore.currentUser?.currentMonthPoints || 0
+                });
+
+                // Execute the task
+                const execution = dataManager.executeTask(task1.id, {
+                    notes: 'Debug execution 1'
+                });
+
+                log('✅ Task 1 executed:', {
+                    executionId: execution.id,
+                    pointsAwarded: execution.pointsAwarded
+                });
+
+                // Capture state AFTER execution
+                const stateAfter = dataManager.getState();
+                log('📊 State after execution:', {
+                    executions: Object.keys(stateAfter.executions).length,
+                    userPoints: stateAfter.currentUser?.currentMonthPoints || 0
+                });
+
+                // Check snapshots
+                const allSnapshots = eventSourcingManager.getSnapshots();
+                log('📸 Snapshots after Task 1:', {
+                    count: allSnapshots.length,
+                    latest: allSnapshots[0] ? {
+                        id: allSnapshots[0].id,
+                        trigger: allSnapshots[0].triggerEvent,
+                        timestamp: new Date(allSnapshots[0].timestamp).toLocaleTimeString()
+                    } : null
+                });
+
+                snapshots = allSnapshots;
+
+            } catch (error) {
+                log('❌ Error executing Task 1:', error.message);
+            }
+        }
+
+        function executeTask2() {
+            if (!dataManager || !eventSourcingManager) {
+                log('❌ Managers not available');
+                return;
+            }
+
+            try {
+                log('🎯 Step 2: Executing Task 2...');
+                
+                const state = dataManager.getState();
+                const tasks = Object.values(state.tasks);
+                
+                if (tasks.length < 2) {
+                    log('❌ Need at least 2 tasks. Run Initialize first.');
+                    return;
+                }
+
+                const task2 = tasks[1];
+                log('📝 Found task:', { id: task2.id, title: task2.title });
+
+                // Capture state BEFORE execution
+                const stateBefore = dataManager.getState();
+                log('📊 State before Task 2 execution:', {
+                    executions: Object.keys(stateBefore.executions).length,
+                    userPoints: stateBefore.currentUser?.currentMonthPoints || 0
+                });
+
+                // Execute the task
+                const execution = dataManager.executeTask(task2.id, {
+                    notes: 'Debug execution 2'
+                });
+
+                log('✅ Task 2 executed:', {
+                    executionId: execution.id,
+                    pointsAwarded: execution.pointsAwarded
+                });
+
+                // Capture state AFTER execution
+                const stateAfter = dataManager.getState();
+                log('📊 State after Task 2 execution:', {
+                    executions: Object.keys(stateAfter.executions).length,
+                    userPoints: stateAfter.currentUser?.currentMonthPoints || 0
+                });
+
+                // Check snapshots
+                const allSnapshots = eventSourcingManager.getSnapshots();
+                log('📸 Snapshots after Task 2:', {
+                    count: allSnapshots.length,
+                    latest: allSnapshots[0] ? {
+                        id: allSnapshots[0].id,
+                        trigger: allSnapshots[0].triggerEvent,
+                        timestamp: new Date(allSnapshots[0].timestamp).toLocaleTimeString()
+                    } : null
+                });
+
+                snapshots = allSnapshots;
+
+            } catch (error) {
+                log('❌ Error executing Task 2:', error.message);
+            }
+        }
+
+        async function restoreToSnapshot1() {
+            if (!eventSourcingManager) {
+                log('❌ EventSourcingManager not available');
+                return;
+            }
+
+            try {
+                log('🔄 Step 3: Restoring to Snapshot 1 (after Task 1)...');
+                
+                const allSnapshots = eventSourcingManager.getSnapshots();
+                log('📸 Available snapshots:', allSnapshots.length);
+
+                if (allSnapshots.length < 2) {
+                    log('❌ Need at least 2 snapshots. Execute tasks first.');
+                    return;
+                }
+
+                // Find the snapshot after Task 1 (should be second newest)
+                const snapshotAfterTask1 = allSnapshots[1]; // Second newest
+                
+                log('🎯 Target snapshot:', {
+                    id: snapshotAfterTask1.id,
+                    trigger: snapshotAfterTask1.triggerEvent,
+                    timestamp: new Date(snapshotAfterTask1.timestamp).toLocaleTimeString()
+                });
+
+                // Capture state BEFORE restore
+                const stateBefore = dataManager.getState();
+                log('📊 State before restore:', {
+                    executions: Object.keys(stateBefore.executions).length,
+                    userPoints: stateBefore.currentUser?.currentMonthPoints || 0,
+                    executionIds: Object.keys(stateBefore.executions)
+                });
+
+                // Perform the restore
+                const result = await eventSourcingManager.restoreFromSnapshot(
+                    snapshotAfterTask1.id, 
+                    'CONFIRMED'
+                );
+
+                log('✅ Restore completed:', result);
+
+                // Capture state AFTER restore
+                const stateAfter = dataManager.getState();
+                log('📊 State after restore:', {
+                    executions: Object.keys(stateAfter.executions).length,
+                    userPoints: stateAfter.currentUser?.currentMonthPoints || 0,
+                    executionIds: Object.keys(stateAfter.executions)
+                });
+
+                // Check if Task 2 execution is still there (BUG!)
+                const task2StillExists = Object.values(stateAfter.executions).some(exec => 
+                    exec.notes && exec.notes.includes('Debug execution 2')
+                );
+
+                if (task2StillExists) {
+                    log('🐛 BUG CONFIRMED: Task 2 execution still exists after restore!');
+                } else {
+                    log('✅ Restore worked correctly: Task 2 execution removed');
+                }
+
+            } catch (error) {
+                log('❌ Error during restore:', error.message);
+            }
+        }
+
+        function showCurrentState() {
+            if (!dataManager) {
+                log('❌ DataManager not available');
+                return;
+            }
+
+            const state = dataManager.getState();
+            const stateDiv = document.getElementById('currentState');
+            
+            const summary = {
+                currentUser: state.currentUser ? {
+                    name: state.currentUser.name,
+                    points: state.currentUser.currentMonthPoints
+                } : null,
+                currentWG: state.currentWG ? state.currentWG.name : null,
+                tasks: Object.keys(state.tasks).length,
+                executions: Object.keys(state.executions).length,
+                executionDetails: Object.values(state.executions).map(exec => ({
+                    id: exec.id.substr(-8),
+                    notes: exec.notes,
+                    points: exec.pointsAwarded,
+                    time: new Date(exec.executedAt).toLocaleTimeString()
+                }))
+            };
+
+            stateDiv.innerHTML = JSON.stringify(summary, null, 2);
+            log('📊 Current state displayed');
+        }
+
+        function showSnapshots() {
+            if (!eventSourcingManager) {
+                log('❌ EventSourcingManager not available');
+                return;
+            }
+
+            const allSnapshots = eventSourcingManager.getSnapshots();
+            log('📸 All snapshots:', allSnapshots.map(s => ({
+                id: s.id.substr(-8),
+                trigger: s.triggerEvent,
+                time: new Date(s.timestamp).toLocaleTimeString(),
+                executionsInSnapshot: s.state.executions ? Object.keys(s.state.executions).length : 0
+            })));
+        }
+
+        function clearAllData() {
+            if (eventSourcingManager) {
+                eventSourcingManager.clearAllData();
+                log('🗑️ Cleared all event sourcing data');
+            }
+            
+            localStorage.clear();
+            log('🗑️ Cleared localStorage');
+            
+            if (confirm('Reload page to start fresh?')) {
+                location.reload();
+            }
+        }
+
+        // Auto-initialize when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('🌟 Debug tool loaded. Please initialize test environment first.');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

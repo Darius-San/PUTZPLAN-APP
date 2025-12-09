@@ -2593,6 +2593,10 @@
 
         function addTask() {
             const taskList = document.getElementById('taskList');
+
+            // Generate a unique task id for the newly created task elements
+            const taskId = 'task_' + Date.now();
+
             const newTask = document.createElement('div');
             newTask.className = 'task-item';
             newTask.innerHTML = `

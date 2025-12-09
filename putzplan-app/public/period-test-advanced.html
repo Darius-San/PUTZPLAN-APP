@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeitraum UI Funktionstest</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .test-dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            min-height: 800px;
+        }
+
+        .app-frame {
+            position: relative;
+        }
+
+        .app-iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+        }
+
+        .test-panel {
+            background: #f8f9fa;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .test-section h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .test-item:hover {
+            border-color: #007bff;
+            background: #f8f9ff;
+        }
+
+        .test-item.completed {
+            border-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .test-item.failed {
+            border-color: #dc3545;
+            background: #fff8f8;
+        }
+
+        .test-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #28a745;
+        }
+
+        .test-label {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .test-status {
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .progress-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: bold;
+            color: #495057;
+            margin-top: 10px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .action-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .test-notes {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .test-notes textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .test-notes textarea:focus {
+            outline: none;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-panel {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-dashboard">
+        <div class="dashboard-header">
+            <h1>🧪 Zeitraum UI - Ausgiebiger Funktionstest</h1>
+            <p>Umfassende Prüfung der modularen Zeitraum-Verwaltung</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="app-frame">
+                <iframe 
+                    src="http://localhost:5173/" 
+                    class="app-iframe"
+                    title="Putzplan App - Zeitraum Test"
+                ></iframe>
+            </div>
+
+            <div class="test-panel">
+                <div class="progress-section">
+                    <h3>📊 Test Fortschritt</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="overall-progress"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text">0 / 25 Tests abgeschlossen</div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="action-btn" onclick="refreshApp()">🔄 App neu laden</button>
+                    <button class="action-btn" onclick="markAllCompleted()">✅ Alle als OK</button>
+                    <button class="action-btn" onclick="exportResults()">📋 Export</button>
+                    <button class="action-btn" onclick="resetTests()">🗑️ Reset</button>
+                </div>
+
+                <!-- UI Structure Tests -->
+                <div class="test-section">
+                    <h3>🎨 UI Struktur & Design</h3>
+                    
+                    <div class="test-item" onclick="toggleTest(this, 'ui-1')">
+                        <input type="checkbox" class="test-checkbox" id="ui-1">
+                        <div class="test-label">Drei separate Boxen sind klar erkennbar</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ui-2')">
+                        <input type="checkbox" class="test-checkbox" id="ui-2">
+                        <div class="test-label">Zeitraum-Erstellung Box (grün) ist prominent</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ui-3')">
+                        <input type="checkbox" class="test-checkbox" id="ui-3">
+                        <div class="test-label">Zeitraum-Auswahl Box (blau) ist übersichtlich</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ui-4')">
+                        <input type="checkbox" class="test-checkbox" id="ui-4">
+                        <div class="test-label">Info Box (lila) zeigt relevante Daten</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ui-5')">
+                        <input type="checkbox" class="test-checkbox" id="ui-5">
+                        <div class="test-label">Icons und Farben sind konsistent</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+                </div>
+
+                <!-- Responsive Tests -->
+                <div class="test-section">
+                    <h3>📱 Responsive Design</h3>
+                    
+                    <div class="test-item" onclick="toggleTest(this, 'resp-1')">
+                        <input type="checkbox" class="test-checkbox" id="resp-1">
+                        <div class="test-label">Desktop (>1200px) Layout optimal</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'resp-2')">
+                        <input type="checkbox" class="test-checkbox" id="resp-2">
+                        <div class="test-label">Tablet (768px-1199px) gut nutzbar</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'resp-3')">
+                        <input type="checkbox" class="test-checkbox" id="resp-3">
+                        <div class="test-label">Mobile (<768px) alle Funktionen erreichbar</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'resp-4')">
+                        <input type="checkbox" class="test-checkbox" id="resp-4">
+                        <div class="test-label">Texte und Buttons ausreichend groß</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'resp-5')">
+                        <input type="checkbox" class="test-checkbox" id="resp-5">
+                        <div class="test-label">Horizontales Scrollen vermieden</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+                </div>
+
+                <!-- Functionality Tests -->
+                <div class="test-section">
+                    <h3>⚙️ Funktionalität</h3>
+                    
+                    <div class="test-item" onclick="toggleTest(this, 'func-1')">
+                        <input type="checkbox" class="test-checkbox" id="func-1">
+                        <div class="test-label">Neuen Zeitraum erstellen funktioniert</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'func-2')">
+                        <input type="checkbox" class="test-checkbox" id="func-2">
+                        <div class="test-label">Datumsvalidierung funktioniert korrekt</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'func-3')">
+                        <input type="checkbox" class="test-checkbox" id="func-3">
+                        <div class="test-label">Überlappende Zeiträume werden erkannt</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'func-4')">
+                        <input type="checkbox" class="test-checkbox" id="func-4">
+                        <div class="test-label">Zeitraum-Auswahl funktioniert</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'func-5')">
+                        <input type="checkbox" class="test-checkbox" id="func-5">
+                        <div class="test-label">Historische Zeiträume anzeigbar</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'func-6')">
+                        <input type="checkbox" class="test-checkbox" id="func-6">
+                        <div class="test-label">Daten zurücksetzen Modal funktioniert</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+                </div>
+
+                <!-- User Experience Tests -->
+                <div class="test-section">
+                    <h3>👤 Benutzerfreundlichkeit</h3>
+                    
+                    <div class="test-item" onclick="toggleTest(this, 'ux-1')">
+                        <input type="checkbox" class="test-checkbox" id="ux-1">
+                        <div class="test-label">Intuitive Navigation zwischen Bereichen</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ux-2')">
+                        <input type="checkbox" class="test-checkbox" id="ux-2">
+                        <div class="test-label">Klare Fehlermeldungen und Hinweise</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ux-3')">
+                        <input type="checkbox" class="test-checkbox" id="ux-3">
+                        <div class="test-label">Feedback bei Aktionen (Erfolg/Fehler)</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ux-4')">
+                        <input type="checkbox" class="test-checkbox" id="ux-4">
+                        <div class="test-label">Konsistente Button-Beschriftungen</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'ux-5')">
+                        <input type="checkbox" class="test-checkbox" id="ux-5">
+                        <div class="test-label">Verständliche Icons und Symbole</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+                </div>
+
+                <!-- Performance Tests -->
+                <div class="test-section">
+                    <h3>⚡ Performance & Stabilität</h3>
+                    
+                    <div class="test-item" onclick="toggleTest(this, 'perf-1')">
+                        <input type="checkbox" class="test-checkbox" id="perf-1">
+                        <div class="test-label">Schnelle Ladezeiten der Komponenten</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'perf-2')">
+                        <input type="checkbox" class="test-checkbox" id="perf-2">
+                        <div class="test-label">Keine Speicher-Leaks bei Interaktionen</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'perf-3')">
+                        <input type="checkbox" class="test-checkbox" id="perf-3">
+                        <div class="test-label">Zeitraum-Daten persistieren nach Reload</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'perf-4')">
+                        <input type="checkbox" class="test-checkbox" id="perf-4">
+                        <div class="test-label">Keine JavaScript Fehler in Konsole</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+
+                    <div class="test-item" onclick="toggleTest(this, 'perf-5')">
+                        <input type="checkbox" class="test-checkbox" id="perf-5">
+                        <div class="test-label">Smooth Animationen und Übergänge</div>
+                        <div class="test-status">⏳</div>
+                    </div>
+                </div>
+
+                <div class="test-notes">
+                    <h4>📝 Test Notizen</h4>
+                    <textarea placeholder="Notiere hier Probleme, Verbesserungsvorschläge oder besondere Beobachtungen..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTest(element, testId) {
+            const checkbox = document.getElementById(testId);
+            const statusElement = element.querySelector('.test-status');
+            
+            checkbox.checked = !checkbox.checked;
+            
+            element.classList.remove('completed', 'failed');
+            
+            if (checkbox.checked) {
+                element.classList.add('completed');
+                statusElement.textContent = '✅';
+            } else {
+                statusElement.textContent = '⏳';
+            }
+            
+            updateOverallProgress();
+        }
+
+        function updateOverallProgress() {
+            const allCheckboxes = document.querySelectorAll('.test-checkbox');
+            const completedCheckboxes = document.querySelectorAll('.test-checkbox:checked');
+            
+            const total = allCheckboxes.length;
+            const completed = completedCheckboxes.length;
+            const percentage = (completed / total) * 100;
+            
+            document.getElementById('overall-progress').style.width = percentage + '%';
+            document.getElementById('progress-text').textContent = `${completed} / ${total} Tests abgeschlossen`;
+            
+            // Update page title
+            document.title = `Zeitraum UI Test (${completed}/${total}) - ${Math.round(percentage)}%`;
+        }
+
+        function refreshApp() {
+            const iframe = document.querySelector('.app-iframe');
+            iframe.contentWindow.location.reload();
+        }
+
+        function markAllCompleted() {
+            const checkboxes = document.querySelectorAll('.test-checkbox');
+            const items = document.querySelectorAll('.test-item');
+            
+            checkboxes.forEach((checkbox, index) => {
+                checkbox.checked = true;
+                items[index].classList.add('completed');
+                items[index].querySelector('.test-status').textContent = '✅';
+            });
+            
+            updateOverallProgress();
+        }
+
+        function resetTests() {
+            if (confirm('Alle Tests zurücksetzen?')) {
+                const checkboxes = document.querySelectorAll('.test-checkbox');
+                const items = document.querySelectorAll('.test-item');
+                
+                checkboxes.forEach((checkbox, index) => {
+                    checkbox.checked = false;
+                    items[index].classList.remove('completed', 'failed');
+                    items[index].querySelector('.test-status').textContent = '⏳';
+                });
+                
+                updateOverallProgress();
+            }
+        }
+
+        function exportResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                totalTests: document.querySelectorAll('.test-checkbox').length,
+                completedTests: document.querySelectorAll('.test-checkbox:checked').length,
+                results: {}
+            };
+
+            document.querySelectorAll('.test-checkbox').forEach(checkbox => {
+                results.results[checkbox.id] = checkbox.checked;
+            });
+
+            const notes = document.querySelector('.test-notes textarea').value;
+            if (notes.trim()) {
+                results.notes = notes;
+            }
+
+            const blob = new Blob([JSON.stringify(results, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `zeitraum-ui-test-${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        updateOverallProgress();
+
+        // Auto-save to localStorage
+        setInterval(() => {
+            const state = {};
+            document.querySelectorAll('.test-checkbox').forEach(checkbox => {
+                state[checkbox.id] = checkbox.checked;
+            });
+            localStorage.setItem('zeitraum-test-state', JSON.stringify(state));
+        }, 5000);
+
+        // Load saved state
+        const savedState = localStorage.getItem('zeitraum-test-state');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            Object.entries(state).forEach(([id, checked]) => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.checked = checked;
+                    if (checked) {
+                        const item = checkbox.closest('.test-item');
+                        item.classList.add('completed');
+                        item.querySelector('.test-status').textContent = '✅';
+                    }
+                }
+            });
+            updateOverallProgress();
+        }
+    </script>
+</body>
+</html>

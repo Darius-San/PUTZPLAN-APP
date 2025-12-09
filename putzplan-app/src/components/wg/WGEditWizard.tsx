@@ -18,6 +18,9 @@ export const WGEditWizard: React.FC<WGEditWizardProps> = ({ wgId, onCancel, onCo
   const [name, setName] = useState(wg?.name || '');
   const [members, setMembers] = useState(() => wg?.memberIds.map((id: string) => state.users[id]).filter(Boolean) || []);
   const [editing, setEditing] = useState(false);
+  const [groupSendEnabled, setGroupSendEnabled] = useState<boolean>(() => !!(wg?.settings?.groupSendEnabled));
+  const [whatsappGroupName, setWhatsappGroupName] = useState<string>(() => wg?.settings?.whatsapp?.groupName || '');
+  const [whatsappGroupId, setWhatsappGroupId] = useState<string>(() => wg?.settings?.whatsapp?.groupId || '');
 
   if (!wg) return <div className="p-6">WG nicht gefunden</div>;
 
@@ -25,12 +28,26 @@ export const WGEditWizard: React.FC<WGEditWizardProps> = ({ wgId, onCancel, onCo
     // Persist updated member names/avatars
     members.forEach((m: any) => {
       const existing = state.users[m.id];
-      if (existing && (existing.name !== m.name || existing.avatar !== m.avatar)) {
-        dataManager.updateUser(m.id, { name: m.name, avatar: m.avatar });
+      // Persist name/avatar and whatsappContact if changed
+      const updates: any = {};
+      if (existing && existing.name !== m.name) updates.name = m.name;
+      if (existing && existing.avatar !== m.avatar) updates.avatar = m.avatar;
+      if (existing && String(existing.whatsappContact || '') !== String(m.whatsappContact || '')) updates.whatsappContact = m.whatsappContact;
+      if (Object.keys(updates).length) {
+        dataManager.updateUser(m.id, updates);
       }
     });
     // Persist memberIds order
-    updateWG(wgId, { name, memberIds: members.map((m: any) => m.id) });
+    const whatsappSettings = {
+      ...(wg.settings || {}),
+      groupSendEnabled,
+      whatsapp: {
+        groupName: whatsappGroupName,
+        groupId: whatsappGroupId,
+        enabled: groupSendEnabled && !!(whatsappGroupName || whatsappGroupId)
+      }
+    };
+    updateWG(wgId, { name, memberIds: members.map((m: any) => m.id), settings: whatsappSettings });
     setCurrentWG(wgId);
     onComplete();
   };
@@ -104,6 +121,8 @@ export const WGEditWizard: React.FC<WGEditWizardProps> = ({ wgId, onCancel, onCo
                   <div className="flex-1 min-w-[160px]">
                     <label className="text-xs text-slate-500">Name</label>
                     <Input value={m.name} onChange={e => updateMember(m.id, { name: e.target.value })} />
+                    <label className="text-xs text-slate-500 mt-2">WhatsApp / Kontakt (optional)</label>
+                    <Input placeholder="z.B. +491701234567 oder Gruppenname" value={m.whatsappContact || ''} onChange={e => updateMember(m.id, { whatsappContact: e.target.value })} />
                   </div>
                   <div className="flex flex-col justify-end">
                     <Button size="sm" variant="ghost" type="button" disabled={members.length<=1} onClick={() => removeMember(m.id)}>Entfernen</Button>
@@ -112,6 +131,52 @@ export const WGEditWizard: React.FC<WGEditWizardProps> = ({ wgId, onCancel, onCo
               </div>
             ))}
           </div>
+        </Card>
+        <Card className="p-4">
+          <h2 className="font-semibold mb-2">WG WhatsApp Einstellungen</h2>
+          <div className="flex items-center gap-3 mb-4">
+            <label className="inline-flex items-center gap-2">
+              <input type="checkbox" checked={groupSendEnabled} onChange={e => setGroupSendEnabled(e.target.checked)} />
+              <span className="text-sm">Nachrichten an WG-Gruppe senden (statt einzelne Kontakte)</span>
+            </label>
+          </div>
+          {groupSendEnabled && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">WG Gruppenname</label>
+                <Input 
+                  value={whatsappGroupName} 
+                  onChange={e => setWhatsappGroupName(e.target.value)} 
+                  placeholder="z.B. Meine WG" 
+                />
+                <div className="text-xs text-slate-400 mt-1">
+                  Anzeigename für die Gruppe (optional)
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Gruppen-ID</label>
+                <Input 
+                  value={whatsappGroupId} 
+                  onChange={e => setWhatsappGroupId(e.target.value)} 
+                  placeholder="z.B. 120363213460007871@g.us" 
+                  className="font-mono text-sm"
+                />
+                <div className="text-xs text-slate-400 mt-1">
+                  WhatsApp Gruppen-ID für Hot Task Benachrichtigungen
+                </div>
+              </div>
+              
+              {(whatsappGroupName || whatsappGroupId) && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                  <div className="text-sm text-green-700">
+                    ✅ WhatsApp-Gruppe konfiguriert
+                    {whatsappGroupName && <div>📝 Name: {whatsappGroupName}</div>}
+                    {whatsappGroupId && <div className="font-mono">🆔 ID: {whatsappGroupId}</div>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
     </div>

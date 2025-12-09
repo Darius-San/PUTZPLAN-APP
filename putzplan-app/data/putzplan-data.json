@@ -1,0 +1,2159 @@
+{
+  "version": "1.0",
+  "state": {
+    "currentUser": {
+      "id": "u1",
+      "name": "Darius",
+      "avatar": "😎",
+      "email": "darius@wg-darius.de",
+      "joinedAt": "2025-01-01T10:00:00.000Z",
+      "isActive": true,
+      "currentMonthPoints": 1185,
+      "targetMonthlyPoints": 431,
+      "totalCompletedTasks": 21
+    },
+    "currentWG": {
+      "id": "wg-darius",
+      "name": "WG Darius & Co",
+      "description": "Vorkonfigurierte Demo mit Bewertungen & Ausführungen",
+      "memberIds": [
+        "u1",
+        "u2",
+        "u3",
+        "u4",
+        "u5",
+        "u6"
+      ],
+      "inviteCode": "DARIUSWG",
+      "createdAt": "2025-01-01T10:00:00.000Z",
+      "settings": {
+        "monthlyPointsTarget": 431,
+        "reminderSettings": {
+          "lowPointsThreshold": 20,
+          "overdueDaysThreshold": 3,
+          "enablePushNotifications": false
+        },
+        "groupSendEnabled": true,
+        "whatsapp": {
+          "groupName": "WLANSCHADEN-WG",
+          "groupId": "",
+          "enabled": true
+        }
+      }
+    },
+    "wgs": {
+      "wg-darius": {
+        "id": "wg-darius",
+        "name": "WG Darius & Co",
+        "description": "Vorkonfigurierte Demo mit Bewertungen & Ausführungen",
+        "memberIds": [
+          "u1",
+          "u2",
+          "u3",
+          "u4",
+          "u5",
+          "u6"
+        ],
+        "inviteCode": "DARIUSWG",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "settings": {
+          "monthlyPointsTarget": 431,
+          "reminderSettings": {
+            "lowPointsThreshold": 20,
+            "overdueDaysThreshold": 3,
+            "enablePushNotifications": false
+          },
+          "groupSendEnabled": true,
+          "whatsapp": {
+            "groupName": "WLANSCHADEN-WG",
+            "groupId": "",
+            "enabled": true
+          }
+        }
+      },
+      "mgsglmqzyd26uaqqvp": {
+        "name": "test",
+        "monthlyPointsTarget": 100,
+        "settings": {
+          "monthlyPointsTarget": 52,
+          "reminderSettings": {
+            "lowPointsThreshold": 20,
+            "overdueDaysThreshold": 3,
+            "enablePushNotifications": true
+          }
+        },
+        "id": "mgsglmqzyd26uaqqvp",
+        "createdAt": "2025-10-15T20:44:23.531Z",
+        "memberIds": [
+          "mgsglmr06kodqgrv58f",
+          "mgsglmr0rern5hnp15p"
+        ],
+        "inviteCode": "7XUN18ZU"
+      }
+    },
+    "users": {
+      "u1": {
+        "id": "u1",
+        "name": "Darius",
+        "avatar": "😎",
+        "email": "darius@wg-darius.de",
+        "joinedAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "currentMonthPoints": 1185,
+        "targetMonthlyPoints": 431,
+        "totalCompletedTasks": 21
+      },
+      "u2": {
+        "id": "u2",
+        "name": "Lilly",
+        "avatar": "🌸",
+        "email": "lilly@wg-darius.de",
+        "joinedAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "currentMonthPoints": 539,
+        "targetMonthlyPoints": 431,
+        "totalCompletedTasks": 5
+      },
+      "u3": {
+        "id": "u3",
+        "name": "Hendrik I",
+        "avatar": "🤓",
+        "email": "hendrik1@wg-darius.de",
+        "joinedAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "currentMonthPoints": 469,
+        "targetMonthlyPoints": 431,
+        "totalCompletedTasks": 6
+      },
+      "u4": {
+        "id": "u4",
+        "name": "Hendrik II",
+        "avatar": "😊",
+        "email": "hendrik2@wg-darius.de",
+        "joinedAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "currentMonthPoints": 343,
+        "targetMonthlyPoints": 431,
+        "totalCompletedTasks": 2
+      },
+      "u5": {
+        "id": "u5",
+        "name": "Hamza Hamza",
+        "avatar": "🚀",
+        "email": "hamza@wg-darius.de",
+        "joinedAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "currentMonthPoints": 357,
+        "targetMonthlyPoints": 431,
+        "totalCompletedTasks": 2
+      },
+      "u6": {
+        "id": "u6",
+        "name": "Sofia",
+        "avatar": "✨",
+        "email": "sofia@wg-darius.de",
+        "joinedAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "currentMonthPoints": 530,
+        "targetMonthlyPoints": 431,
+        "totalCompletedTasks": 2
+      },
+      "mgsglmr06kodqgrv58f": {
+        "name": "1",
+        "avatar": "😊",
+        "targetMonthlyPoints": 52,
+        "isActive": true,
+        "id": "mgsglmr06kodqgrv58f",
+        "joinedAt": "2025-10-15T20:44:23.532Z",
+        "currentMonthPoints": 0,
+        "totalCompletedTasks": 0
+      },
+      "mgsglmr0rern5hnp15p": {
+        "name": "2",
+        "avatar": "😎",
+        "targetMonthlyPoints": 52,
+        "isActive": true,
+        "id": "mgsglmr0rern5hnp15p",
+        "joinedAt": "2025-10-15T20:44:23.532Z",
+        "currentMonthPoints": 0,
+        "totalCompletedTasks": 0
+      }
+    },
+    "tasks": {
+      "t1": {
+        "id": "t1",
+        "wgId": "wg-darius",
+        "title": "Küche putzen",
+        "description": "Oberflächen reinigen & Herd säubern",
+        "emoji": "🍳",
+        "category": 0,
+        "averageMinutes": 29.166666666666668,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 19,
+        "difficultyScore": 4,
+        "unpleasantnessScore": 4,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 2,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t2": {
+        "id": "t2",
+        "wgId": "wg-darius",
+        "title": "Bad reinigen",
+        "description": "Waschbecken, Dusche, Spiegel",
+        "emoji": "🛁",
+        "category": 0,
+        "averageMinutes": 16.666666666666668,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 26,
+        "difficultyScore": 5,
+        "unpleasantnessScore": 5,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 3,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t3": {
+        "id": "t3",
+        "wgId": "wg-darius",
+        "title": "Staubsaugen",
+        "description": "Alle Zimmer saugen",
+        "emoji": "🧹",
+        "category": 0,
+        "averageMinutes": 21.166666666666668,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 32,
+        "difficultyScore": 6,
+        "unpleasantnessScore": 6,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 1,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t4": {
+        "id": "t4",
+        "wgId": "wg-darius",
+        "title": "Müll rausbringen",
+        "description": "Restmüll & Gelber Sack",
+        "emoji": "🗑️",
+        "category": 0,
+        "averageMinutes": 26.833333333333332,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 39,
+        "difficultyScore": 7,
+        "unpleasantnessScore": 7,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 1,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t5": {
+        "id": "t5",
+        "wgId": "wg-darius",
+        "title": "Boden wischen",
+        "description": "Boden wischen",
+        "emoji": "🧼",
+        "category": 0,
+        "averageMinutes": 32.5,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 42,
+        "difficultyScore": 8,
+        "unpleasantnessScore": 8,
+        "pointsPerExecution": 47,
+        "totalMonthlyPoints": 188,
+        "constraints": {
+          "minDaysBetween": 4,
+          "maxDaysBetween": 8,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t6": {
+        "id": "t6",
+        "wgId": "wg-darius",
+        "title": "Kühlschrank check",
+        "description": "Kühlschrank check",
+        "emoji": "🥶",
+        "category": 0,
+        "averageMinutes": 38,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 3,
+        "basePoints": 38,
+        "difficultyScore": 4,
+        "unpleasantnessScore": 4,
+        "pointsPerExecution": 55,
+        "totalMonthlyPoints": 165,
+        "constraints": {
+          "minDaysBetween": 5,
+          "maxDaysBetween": 10,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t7": {
+        "id": "t7",
+        "wgId": "wg-darius",
+        "title": "Einkaufsliste pflegen",
+        "description": "Einkaufsliste pflegen",
+        "emoji": "📝",
+        "category": 0,
+        "averageMinutes": 11.333333333333334,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 23,
+        "difficultyScore": 5,
+        "unpleasantnessScore": 5,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 2,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t8": {
+        "id": "t8",
+        "wgId": "wg-darius",
+        "title": "Fenster putzen",
+        "description": "Fenster putzen",
+        "emoji": "🪟",
+        "category": 0,
+        "averageMinutes": 16,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 1,
+        "basePoints": 30,
+        "difficultyScore": 6,
+        "unpleasantnessScore": 6,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 44,
+        "constraints": {
+          "minDaysBetween": 14,
+          "maxDaysBetween": 28,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true,
+        "isAlarmed": true
+      },
+      "t9": {
+        "id": "t9",
+        "wgId": "wg-darius",
+        "title": "Pflanzen gießen",
+        "description": "Pflanzen gießen",
+        "emoji": "🪴",
+        "category": 0,
+        "averageMinutes": 21.333333333333332,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 32,
+        "difficultyScore": 7,
+        "unpleasantnessScore": 7,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 2,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t10": {
+        "id": "t10",
+        "wgId": "wg-darius",
+        "title": "Spülmaschine",
+        "description": "Spülmaschine",
+        "emoji": "🍽️",
+        "category": 0,
+        "averageMinutes": 27,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 39,
+        "difficultyScore": 8,
+        "unpleasantnessScore": 8,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 1,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t11": {
+        "id": "t11",
+        "wgId": "wg-darius",
+        "title": "Wäsche waschen",
+        "description": "Wäsche waschen",
+        "emoji": "👕",
+        "category": 0,
+        "averageMinutes": 32.666666666666664,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 36,
+        "difficultyScore": 4,
+        "unpleasantnessScore": 4,
+        "pointsPerExecution": 47,
+        "totalMonthlyPoints": 188,
+        "constraints": {
+          "minDaysBetween": 3,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t12": {
+        "id": "t12",
+        "wgId": "wg-darius",
+        "title": "Flur fegen",
+        "description": "Flur fegen",
+        "emoji": "🚪",
+        "category": 0,
+        "averageMinutes": 38.166666666666664,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 42,
+        "difficultyScore": 5,
+        "unpleasantnessScore": 5,
+        "pointsPerExecution": 55,
+        "totalMonthlyPoints": 220,
+        "constraints": {
+          "minDaysBetween": 3,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t13": {
+        "id": "t13",
+        "wgId": "wg-darius",
+        "title": "Ofen reinigen",
+        "description": "Ofen reinigen",
+        "emoji": "🔥",
+        "category": 0,
+        "averageMinutes": 10.666666666666666,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 1,
+        "basePoints": 23,
+        "difficultyScore": 6,
+        "unpleasantnessScore": 6,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 44,
+        "constraints": {
+          "minDaysBetween": 30,
+          "maxDaysBetween": 60,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t14": {
+        "id": "t14",
+        "wgId": "wg-darius",
+        "title": "Regale abstauben",
+        "description": "Regale abstauben",
+        "emoji": "🧴",
+        "category": 0,
+        "averageMinutes": 16.166666666666668,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 2,
+        "basePoints": 30,
+        "difficultyScore": 7,
+        "unpleasantnessScore": 7,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 88,
+        "constraints": {
+          "minDaysBetween": 7,
+          "maxDaysBetween": 14,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t15": {
+        "id": "t15",
+        "wgId": "wg-darius",
+        "title": "Mikrowelle reinigen",
+        "description": "Mikrowelle reinigen",
+        "emoji": "🌀",
+        "category": 0,
+        "averageMinutes": 21.5,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 2,
+        "basePoints": 36,
+        "difficultyScore": 8,
+        "unpleasantnessScore": 8,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 88,
+        "constraints": {
+          "minDaysBetween": 10,
+          "maxDaysBetween": 20,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t16": {
+        "id": "t16",
+        "wgId": "wg-darius",
+        "title": "Tisch desinfizieren",
+        "description": "Tisch desinfizieren",
+        "emoji": "🧪",
+        "category": 0,
+        "averageMinutes": 27.166666666666668,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 4,
+        "basePoints": 33,
+        "difficultyScore": 4,
+        "unpleasantnessScore": 4,
+        "pointsPerExecution": 44,
+        "totalMonthlyPoints": 176,
+        "constraints": {
+          "minDaysBetween": 2,
+          "maxDaysBetween": 7,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t17": {
+        "id": "t17",
+        "wgId": "wg-darius",
+        "title": "Essen planen",
+        "description": "Essen planen",
+        "emoji": "🥗",
+        "category": 0,
+        "averageMinutes": 32.833333333333336,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 2,
+        "basePoints": 36,
+        "difficultyScore": 5,
+        "unpleasantnessScore": 5,
+        "pointsPerExecution": 48,
+        "totalMonthlyPoints": 96,
+        "constraints": {
+          "minDaysBetween": 7,
+          "maxDaysBetween": 14,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "t18": {
+        "id": "t18",
+        "wgId": "wg-darius",
+        "title": "Altglas wegbringen",
+        "description": "Altglas wegbringen",
+        "emoji": "🧴",
+        "category": 0,
+        "averageMinutes": 37.5,
+        "averagePainLevel": 5.166666666666667,
+        "averageImportance": 5.666666666666667,
+        "monthlyFrequency": 1,
+        "basePoints": 42,
+        "difficultyScore": 6,
+        "unpleasantnessScore": 6,
+        "pointsPerExecution": 54,
+        "totalMonthlyPoints": 54,
+        "constraints": {
+          "minDaysBetween": 14,
+          "maxDaysBetween": 28,
+          "requiresPhoto": false
+        },
+        "createdBy": "u1",
+        "createdAt": "2025-01-01T10:00:00.000Z",
+        "isActive": true,
+        "setupComplete": true
+      },
+      "mgsglzg26qholxlhlfw": {
+        "title": "fh",
+        "description": "Manuell hinzugefügt",
+        "emoji": "🧽",
+        "category": "general",
+        "timeEstimate": 30,
+        "difficultyScore": 5,
+        "unpleasantnessScore": 5,
+        "maxDaysBetween": 14,
+        "requiresPhoto": false,
+        "averageMinutes": 12,
+        "averagePainLevel": 12,
+        "averageImportance": 2,
+        "monthlyFrequency": 2,
+        "pointsPerExecution": 52,
+        "totalMonthlyPoints": 104,
+        "constraints": {
+          "maxDaysBetween": 14,
+          "requiresPhoto": false
+        },
+        "isActive": true,
+        "setupComplete": false,
+        "id": "mgsglzg26qholxlhlfw",
+        "wgId": "mgsglmqzyd26uaqqvp",
+        "createdAt": "2025-10-15T20:44:39.986Z",
+        "createdBy": "mgsglmr06kodqgrv58f",
+        "basePoints": 10,
+        "checklist": [
+          "jh"
+        ],
+        "isAlarmed": true
+      }
+    },
+    "executions": {
+      "e1": {
+        "id": "e1",
+        "taskId": "t1",
+        "executedBy": "u1",
+        "executedAt": "2025-01-01T10:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 58,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e2": {
+        "id": "e2",
+        "taskId": "t1",
+        "executedBy": "u3",
+        "executedAt": "2025-01-01T16:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 58,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e3": {
+        "id": "e3",
+        "taskId": "t2",
+        "executedBy": "u2",
+        "executedAt": "2025-01-02T10:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 103,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e4": {
+        "id": "e4",
+        "taskId": "t2",
+        "executedBy": "u4",
+        "executedAt": "2025-01-02T16:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 103,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e5": {
+        "id": "e5",
+        "taskId": "t3",
+        "executedBy": "u3",
+        "executedAt": "2025-01-03T10:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 160,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e6": {
+        "id": "e6",
+        "taskId": "t3",
+        "executedBy": "u5",
+        "executedAt": "2025-01-03T16:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 160,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e7": {
+        "id": "e7",
+        "taskId": "t4",
+        "executedBy": "u4",
+        "executedAt": "2025-01-04T10:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 240,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e8": {
+        "id": "e8",
+        "taskId": "t4",
+        "executedBy": "u6",
+        "executedAt": "2025-01-04T16:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 240,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e9": {
+        "id": "e9",
+        "taskId": "t9",
+        "executedBy": "u5",
+        "executedAt": "2025-01-05T10:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 197,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e10": {
+        "id": "e10",
+        "taskId": "t9",
+        "executedBy": "u1",
+        "executedAt": "2025-01-05T16:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 197,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e11": {
+        "id": "e11",
+        "taskId": "t10",
+        "executedBy": "u6",
+        "executedAt": "2025-01-06T10:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 290,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e12": {
+        "id": "e12",
+        "taskId": "t10",
+        "executedBy": "u2",
+        "executedAt": "2025-01-06T16:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 290,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e13": {
+        "id": "e13",
+        "taskId": "t11",
+        "executedBy": "u1",
+        "executedAt": "2025-01-07T10:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 109,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "e14": {
+        "id": "e14",
+        "taskId": "t11",
+        "executedBy": "u3",
+        "executedAt": "2025-01-07T16:00:00.000Z",
+        "notes": "Seed Exec",
+        "pointsAwarded": 109,
+        "isVerified": true,
+        "status": "verified"
+      },
+      "mhm97lpo3fj63hzvx8d": {
+        "id": "mhm97lpo3fj63hzvx8d",
+        "taskId": "t8",
+        "executedBy": "u1",
+        "executedAt": "2025-11-05T17:10:36.972Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhm9x1nobjfrpken74": {
+        "id": "mhm9x1nobjfrpken74",
+        "taskId": "t8",
+        "executedBy": "u1",
+        "executedAt": "2025-11-05T17:30:24.036Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn6r9qlx21sl8e93ap": {
+        "id": "mhn6r9qlx21sl8e93ap",
+        "taskId": "t8",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T08:49:41.901Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn8p9qvweopvdcxqm9": {
+        "id": "mhn8p9qvweopvdcxqm9",
+        "taskId": "t8",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T09:44:07.831Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn8pilneo5ijwng2gr": {
+        "id": "mhn8pilneo5ijwng2gr",
+        "taskId": "t10",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T09:44:19.307Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn9964vyqsbekkizza": {
+        "id": "mhn9964vyqsbekkizza",
+        "taskId": "t12",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T09:59:36.271Z",
+        "pointsAwarded": 55,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn9g5k9ajidlrjmc0e": {
+        "id": "mhn9g5k9ajidlrjmc0e",
+        "taskId": "t13",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:05:02.121Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn9gvxbs9ryroygzha": {
+        "id": "mhn9gvxbs9ryroygzha",
+        "taskId": "t13",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:05:36.287Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn9gy0r2ck3qlmfuft": {
+        "id": "mhn9gy0r2ck3qlmfuft",
+        "taskId": "t13",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:05:39.003Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn9h134msiv0077fwd": {
+        "id": "mhn9h134msiv0077fwd",
+        "taskId": "t14",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:05:42.976Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhn9iu6hsebtc4ducc": {
+        "id": "mhn9iu6hsebtc4ducc",
+        "taskId": "t15",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:07:07.337Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhna58qo0ncoeq14emto": {
+        "id": "mhna58qo0ncoeq14emto",
+        "taskId": "t16",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:24:32.640Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhna5d9tm56q78ek29j": {
+        "id": "mhna5d9tm56q78ek29j",
+        "taskId": "t17",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:24:38.513Z",
+        "pointsAwarded": 48,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhna6cz3ajssnayl1al": {
+        "id": "mhna6cz3ajssnayl1al",
+        "taskId": "t17",
+        "executedBy": "u2",
+        "executedAt": "2025-11-06T10:25:24.783Z",
+        "pointsAwarded": 48,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhna6fuj65tmjd3s4qx": {
+        "id": "mhna6fuj65tmjd3s4qx",
+        "taskId": "t17",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T10:25:28.507Z",
+        "pointsAwarded": 48,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnn3bdfvn2ihsw0el": {
+        "id": "mhnn3bdfvn2ihsw0el",
+        "taskId": "t9",
+        "executedBy": "u2",
+        "executedAt": "2025-11-06T16:26:57.747Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnn3kmp9kss174zc7q": {
+        "id": "mhnn3kmp9kss174zc7q",
+        "taskId": "t18",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T16:27:09.745Z",
+        "pointsAwarded": 54,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnnjvtxqj2yctv18ua": {
+        "id": "mhnnjvtxqj2yctv18ua",
+        "taskId": "t9",
+        "executedBy": "u3",
+        "executedAt": "2025-11-06T16:39:50.757Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnnk0gjll0iv59wq2h": {
+        "id": "mhnnk0gjll0iv59wq2h",
+        "taskId": "t10",
+        "executedBy": "u3",
+        "executedAt": "2025-11-06T16:39:56.755Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnnlcgu8ryavayhak": {
+        "id": "mhnnlcgu8ryavayhak",
+        "taskId": "t18",
+        "executedBy": "u2",
+        "executedAt": "2025-11-06T16:40:58.974Z",
+        "pointsAwarded": 54,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnnlf7agne3g13vfw5": {
+        "id": "mhnnlf7agne3g13vfw5",
+        "taskId": "t18",
+        "executedBy": "u3",
+        "executedAt": "2025-11-06T16:41:02.518Z",
+        "pointsAwarded": 54,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnnq54se35x14898bg": {
+        "id": "mhnnq54se35x14898bg",
+        "taskId": "t2",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T16:44:42.748Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnnq7wlit5181riu6m": {
+        "id": "mhnnq7wlit5181riu6m",
+        "taskId": "t3",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T16:44:46.341Z",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      },
+      "mhnnvlre3blcw5npg13": {
+        "id": "mhnnvlre3blcw5npg13",
+        "taskId": "t1",
+        "executedBy": "u1",
+        "executedAt": "2025-11-06T16:48:57.578Z",
+        "notes": "DEBUG: Task 1 execution",
+        "pointsAwarded": 44,
+        "status": "verified",
+        "isVerified": true
+      }
+    },
+    "ratings": {
+      "r1": {
+        "id": "r1",
+        "taskId": "t1",
+        "userId": "u1",
+        "estimatedMinutes": 120,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:18:19.000Z"
+      },
+      "r2": {
+        "id": "r2",
+        "taskId": "t2",
+        "userId": "u1",
+        "estimatedMinutes": 18,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:18:20.000Z"
+      },
+      "r3": {
+        "id": "r3",
+        "taskId": "t3",
+        "userId": "u1",
+        "estimatedMinutes": 19,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:18:21.000Z"
+      },
+      "r4": {
+        "id": "r4",
+        "taskId": "t4",
+        "userId": "u1",
+        "estimatedMinutes": 25,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:18:22.000Z"
+      },
+      "r5": {
+        "id": "r5",
+        "taskId": "t5",
+        "userId": "u1",
+        "estimatedMinutes": 32,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:18:23.000Z"
+      },
+      "r6": {
+        "id": "r6",
+        "taskId": "t6",
+        "userId": "u1",
+        "estimatedMinutes": 38,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 3,
+        "createdAt": "2025-01-01T10:18:24.000Z"
+      },
+      "r7": {
+        "id": "r7",
+        "taskId": "t7",
+        "userId": "u1",
+        "estimatedMinutes": 13,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:18:25.000Z"
+      },
+      "r8": {
+        "id": "r8",
+        "taskId": "t8",
+        "userId": "u1",
+        "estimatedMinutes": 14,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:18:26.000Z"
+      },
+      "r9": {
+        "id": "r9",
+        "taskId": "t9",
+        "userId": "u1",
+        "estimatedMinutes": 20,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:18:27.000Z"
+      },
+      "r10": {
+        "id": "r10",
+        "taskId": "t10",
+        "userId": "u1",
+        "estimatedMinutes": 26,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:08:37.000Z"
+      },
+      "r11": {
+        "id": "r11",
+        "taskId": "t11",
+        "userId": "u1",
+        "estimatedMinutes": 33,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:08:38.000Z"
+      },
+      "r12": {
+        "id": "r12",
+        "taskId": "t12",
+        "userId": "u1",
+        "estimatedMinutes": 39,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:08:39.000Z"
+      },
+      "r13": {
+        "id": "r13",
+        "taskId": "t13",
+        "userId": "u1",
+        "estimatedMinutes": 9,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T11:08:40.000Z"
+      },
+      "r14": {
+        "id": "r14",
+        "taskId": "t14",
+        "userId": "u1",
+        "estimatedMinutes": 15,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T11:08:41.000Z"
+      },
+      "r15": {
+        "id": "r15",
+        "taskId": "t15",
+        "userId": "u1",
+        "estimatedMinutes": 21,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T11:08:42.000Z"
+      },
+      "r16": {
+        "id": "r16",
+        "taskId": "t16",
+        "userId": "u1",
+        "estimatedMinutes": 27,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:08:43.000Z"
+      },
+      "r17": {
+        "id": "r17",
+        "taskId": "t17",
+        "userId": "u1",
+        "estimatedMinutes": 34,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T11:08:44.000Z"
+      },
+      "r18": {
+        "id": "r18",
+        "taskId": "t18",
+        "userId": "u1",
+        "estimatedMinutes": 35,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T11:08:45.000Z"
+      },
+      "r19": {
+        "id": "r19",
+        "taskId": "t1",
+        "userId": "u2",
+        "estimatedMinutes": 12,
+        "painLevel": 6,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:14:50.000Z"
+      },
+      "r20": {
+        "id": "r20",
+        "taskId": "t2",
+        "userId": "u2",
+        "estimatedMinutes": 13,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:14:51.000Z"
+      },
+      "r21": {
+        "id": "r21",
+        "taskId": "t3",
+        "userId": "u2",
+        "estimatedMinutes": 19,
+        "painLevel": 5,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:14:52.000Z"
+      },
+      "r22": {
+        "id": "r22",
+        "taskId": "t4",
+        "userId": "u2",
+        "estimatedMinutes": 25,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:14:53.000Z"
+      },
+      "r23": {
+        "id": "r23",
+        "taskId": "t5",
+        "userId": "u2",
+        "estimatedMinutes": 31,
+        "painLevel": 7,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:14:54.000Z"
+      },
+      "r24": {
+        "id": "r24",
+        "taskId": "t6",
+        "userId": "u2",
+        "estimatedMinutes": 37,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 3,
+        "createdAt": "2025-01-01T10:14:55.000Z"
+      },
+      "r25": {
+        "id": "r25",
+        "taskId": "t7",
+        "userId": "u2",
+        "estimatedMinutes": 8,
+        "painLevel": 6,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:14:56.000Z"
+      },
+      "r26": {
+        "id": "r26",
+        "taskId": "t8",
+        "userId": "u2",
+        "estimatedMinutes": 14,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:14:57.000Z"
+      },
+      "r27": {
+        "id": "r27",
+        "taskId": "t9",
+        "userId": "u2",
+        "estimatedMinutes": 20,
+        "painLevel": 5,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:14:58.000Z"
+      },
+      "r28": {
+        "id": "r28",
+        "taskId": "t10",
+        "userId": "u2",
+        "estimatedMinutes": 26,
+        "painLevel": 6,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:43:58.000Z"
+      },
+      "r29": {
+        "id": "r29",
+        "taskId": "t11",
+        "userId": "u2",
+        "estimatedMinutes": 32,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:43:59.000Z"
+      },
+      "r30": {
+        "id": "r30",
+        "taskId": "t12",
+        "userId": "u2",
+        "estimatedMinutes": 33,
+        "painLevel": 5,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:44:00.000Z"
+      },
+      "r31": {
+        "id": "r31",
+        "taskId": "t13",
+        "userId": "u2",
+        "estimatedMinutes": 9,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:44:01.000Z"
+      },
+      "r32": {
+        "id": "r32",
+        "taskId": "t14",
+        "userId": "u2",
+        "estimatedMinutes": 15,
+        "painLevel": 7,
+        "importance": 7,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:44:02.000Z"
+      },
+      "r33": {
+        "id": "r33",
+        "taskId": "t15",
+        "userId": "u2",
+        "estimatedMinutes": 21,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:44:03.000Z"
+      },
+      "r34": {
+        "id": "r34",
+        "taskId": "t16",
+        "userId": "u2",
+        "estimatedMinutes": 27,
+        "painLevel": 6,
+        "importance": 7,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:44:04.000Z"
+      },
+      "r35": {
+        "id": "r35",
+        "taskId": "t17",
+        "userId": "u2",
+        "estimatedMinutes": 28,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:44:05.000Z"
+      },
+      "r36": {
+        "id": "r36",
+        "taskId": "t18",
+        "userId": "u2",
+        "estimatedMinutes": 34,
+        "painLevel": 5,
+        "importance": 7,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:44:06.000Z"
+      },
+      "r37": {
+        "id": "r37",
+        "taskId": "t1",
+        "userId": "u3",
+        "estimatedMinutes": 10,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:11:21.000Z"
+      },
+      "r38": {
+        "id": "r38",
+        "taskId": "t2",
+        "userId": "u3",
+        "estimatedMinutes": 16,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:11:22.000Z"
+      },
+      "r39": {
+        "id": "r39",
+        "taskId": "t3",
+        "userId": "u3",
+        "estimatedMinutes": 23,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:11:23.000Z"
+      },
+      "r40": {
+        "id": "r40",
+        "taskId": "t4",
+        "userId": "u3",
+        "estimatedMinutes": 30,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:11:24.000Z"
+      },
+      "r41": {
+        "id": "r41",
+        "taskId": "t5",
+        "userId": "u3",
+        "estimatedMinutes": 37,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:11:25.000Z"
+      },
+      "r42": {
+        "id": "r42",
+        "taskId": "t6",
+        "userId": "u3",
+        "estimatedMinutes": 38,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 3,
+        "createdAt": "2025-01-01T10:11:26.000Z"
+      },
+      "r43": {
+        "id": "r43",
+        "taskId": "t7",
+        "userId": "u3",
+        "estimatedMinutes": 11,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:11:27.000Z"
+      },
+      "r44": {
+        "id": "r44",
+        "taskId": "t8",
+        "userId": "u3",
+        "estimatedMinutes": 17,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:11:28.000Z"
+      },
+      "r45": {
+        "id": "r45",
+        "taskId": "t9",
+        "userId": "u3",
+        "estimatedMinutes": 24,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:11:29.000Z"
+      },
+      "r46": {
+        "id": "r46",
+        "taskId": "t10",
+        "userId": "u3",
+        "estimatedMinutes": 31,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:19:19.000Z"
+      },
+      "r47": {
+        "id": "r47",
+        "taskId": "t11",
+        "userId": "u3",
+        "estimatedMinutes": 33,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:19:20.000Z"
+      },
+      "r48": {
+        "id": "r48",
+        "taskId": "t12",
+        "userId": "u3",
+        "estimatedMinutes": 39,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:19:21.000Z"
+      },
+      "r49": {
+        "id": "r49",
+        "taskId": "t13",
+        "userId": "u3",
+        "estimatedMinutes": 12,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:19:22.000Z"
+      },
+      "r50": {
+        "id": "r50",
+        "taskId": "t14",
+        "userId": "u3",
+        "estimatedMinutes": 18,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:19:23.000Z"
+      },
+      "r51": {
+        "id": "r51",
+        "taskId": "t15",
+        "userId": "u3",
+        "estimatedMinutes": 25,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:19:24.000Z"
+      },
+      "r52": {
+        "id": "r52",
+        "taskId": "t16",
+        "userId": "u3",
+        "estimatedMinutes": 27,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:19:25.000Z"
+      },
+      "r53": {
+        "id": "r53",
+        "taskId": "t17",
+        "userId": "u3",
+        "estimatedMinutes": 34,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:19:26.000Z"
+      },
+      "r54": {
+        "id": "r54",
+        "taskId": "t18",
+        "userId": "u3",
+        "estimatedMinutes": 40,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:19:27.000Z"
+      },
+      "r55": {
+        "id": "r55",
+        "taskId": "t1",
+        "userId": "u4",
+        "estimatedMinutes": 10,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:07:52.000Z"
+      },
+      "r56": {
+        "id": "r56",
+        "taskId": "t2",
+        "userId": "u4",
+        "estimatedMinutes": 17,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:07:53.000Z"
+      },
+      "r57": {
+        "id": "r57",
+        "taskId": "t3",
+        "userId": "u4",
+        "estimatedMinutes": 23,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:07:54.000Z"
+      },
+      "r58": {
+        "id": "r58",
+        "taskId": "t4",
+        "userId": "u4",
+        "estimatedMinutes": 30,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:07:55.000Z"
+      },
+      "r59": {
+        "id": "r59",
+        "taskId": "t5",
+        "userId": "u4",
+        "estimatedMinutes": 31,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:07:56.000Z"
+      },
+      "r60": {
+        "id": "r60",
+        "taskId": "t6",
+        "userId": "u4",
+        "estimatedMinutes": 38,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 3,
+        "createdAt": "2025-01-01T10:07:57.000Z"
+      },
+      "r61": {
+        "id": "r61",
+        "taskId": "t7",
+        "userId": "u4",
+        "estimatedMinutes": 11,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:07:58.000Z"
+      },
+      "r62": {
+        "id": "r62",
+        "taskId": "t8",
+        "userId": "u4",
+        "estimatedMinutes": 18,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:07:59.000Z"
+      },
+      "r63": {
+        "id": "r63",
+        "taskId": "t9",
+        "userId": "u4",
+        "estimatedMinutes": 24,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:08:00.000Z"
+      },
+      "r64": {
+        "id": "r64",
+        "taskId": "t10",
+        "userId": "u4",
+        "estimatedMinutes": 26,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:18:00.000Z"
+      },
+      "r65": {
+        "id": "r65",
+        "taskId": "t11",
+        "userId": "u4",
+        "estimatedMinutes": 32,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:18:01.000Z"
+      },
+      "r66": {
+        "id": "r66",
+        "taskId": "t12",
+        "userId": "u4",
+        "estimatedMinutes": 39,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:18:02.000Z"
+      },
+      "r67": {
+        "id": "r67",
+        "taskId": "t13",
+        "userId": "u4",
+        "estimatedMinutes": 12,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T11:18:03.000Z"
+      },
+      "r68": {
+        "id": "r68",
+        "taskId": "t14",
+        "userId": "u4",
+        "estimatedMinutes": 19,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T11:18:04.000Z"
+      },
+      "r69": {
+        "id": "r69",
+        "taskId": "t15",
+        "userId": "u4",
+        "estimatedMinutes": 20,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T11:18:05.000Z"
+      },
+      "r70": {
+        "id": "r70",
+        "taskId": "t16",
+        "userId": "u4",
+        "estimatedMinutes": 27,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T11:18:06.000Z"
+      },
+      "r71": {
+        "id": "r71",
+        "taskId": "t17",
+        "userId": "u4",
+        "estimatedMinutes": 33,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T11:18:07.000Z"
+      },
+      "r72": {
+        "id": "r72",
+        "taskId": "t18",
+        "userId": "u4",
+        "estimatedMinutes": 40,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T11:18:08.000Z"
+      },
+      "r73": {
+        "id": "r73",
+        "taskId": "t1",
+        "userId": "u5",
+        "estimatedMinutes": 11,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:04:23.000Z"
+      },
+      "r74": {
+        "id": "r74",
+        "taskId": "t2",
+        "userId": "u5",
+        "estimatedMinutes": 17,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:04:24.000Z"
+      },
+      "r75": {
+        "id": "r75",
+        "taskId": "t3",
+        "userId": "u5",
+        "estimatedMinutes": 23,
+        "painLevel": 3,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:04:25.000Z"
+      },
+      "r76": {
+        "id": "r76",
+        "taskId": "t4",
+        "userId": "u5",
+        "estimatedMinutes": 24,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:04:26.000Z"
+      },
+      "r77": {
+        "id": "r77",
+        "taskId": "t5",
+        "userId": "u5",
+        "estimatedMinutes": 31,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:04:27.000Z"
+      },
+      "r78": {
+        "id": "r78",
+        "taskId": "t6",
+        "userId": "u5",
+        "estimatedMinutes": 37,
+        "painLevel": 3,
+        "importance": 6,
+        "suggestedFrequency": 3,
+        "createdAt": "2025-01-01T10:04:28.000Z"
+      },
+      "r79": {
+        "id": "r79",
+        "taskId": "t7",
+        "userId": "u5",
+        "estimatedMinutes": 12,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:04:29.000Z"
+      },
+      "r80": {
+        "id": "r80",
+        "taskId": "t8",
+        "userId": "u5",
+        "estimatedMinutes": 18,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:04:30.000Z"
+      },
+      "r81": {
+        "id": "r81",
+        "taskId": "t9",
+        "userId": "u5",
+        "estimatedMinutes": 19,
+        "painLevel": 3,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:04:31.000Z"
+      },
+      "r82": {
+        "id": "r82",
+        "taskId": "t10",
+        "userId": "u5",
+        "estimatedMinutes": 25,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:53:21.000Z"
+      },
+      "r83": {
+        "id": "r83",
+        "taskId": "t11",
+        "userId": "u5",
+        "estimatedMinutes": 32,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:53:22.000Z"
+      },
+      "r84": {
+        "id": "r84",
+        "taskId": "t12",
+        "userId": "u5",
+        "estimatedMinutes": 38,
+        "painLevel": 3,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:53:23.000Z"
+      },
+      "r85": {
+        "id": "r85",
+        "taskId": "t13",
+        "userId": "u5",
+        "estimatedMinutes": 13,
+        "painLevel": 4,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:53:24.000Z"
+      },
+      "r86": {
+        "id": "r86",
+        "taskId": "t14",
+        "userId": "u5",
+        "estimatedMinutes": 14,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:53:25.000Z"
+      },
+      "r87": {
+        "id": "r87",
+        "taskId": "t15",
+        "userId": "u5",
+        "estimatedMinutes": 20,
+        "painLevel": 3,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:53:26.000Z"
+      },
+      "r88": {
+        "id": "r88",
+        "taskId": "t16",
+        "userId": "u5",
+        "estimatedMinutes": 26,
+        "painLevel": 4,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:53:27.000Z"
+      },
+      "r89": {
+        "id": "r89",
+        "taskId": "t17",
+        "userId": "u5",
+        "estimatedMinutes": 33,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:53:28.000Z"
+      },
+      "r90": {
+        "id": "r90",
+        "taskId": "t18",
+        "userId": "u5",
+        "estimatedMinutes": 39,
+        "painLevel": 3,
+        "importance": 5,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:53:29.000Z"
+      },
+      "r91": {
+        "id": "r91",
+        "taskId": "t1",
+        "userId": "u6",
+        "estimatedMinutes": 12,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:00:54.000Z"
+      },
+      "r92": {
+        "id": "r92",
+        "taskId": "t2",
+        "userId": "u6",
+        "estimatedMinutes": 19,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:00:55.000Z"
+      },
+      "r93": {
+        "id": "r93",
+        "taskId": "t3",
+        "userId": "u6",
+        "estimatedMinutes": 20,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:00:56.000Z"
+      },
+      "r94": {
+        "id": "r94",
+        "taskId": "t4",
+        "userId": "u6",
+        "estimatedMinutes": 27,
+        "painLevel": 7,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:00:57.000Z"
+      },
+      "r95": {
+        "id": "r95",
+        "taskId": "t5",
+        "userId": "u6",
+        "estimatedMinutes": 33,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:00:58.000Z"
+      },
+      "r96": {
+        "id": "r96",
+        "taskId": "t6",
+        "userId": "u6",
+        "estimatedMinutes": 40,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 3,
+        "createdAt": "2025-01-01T10:00:59.000Z"
+      },
+      "r97": {
+        "id": "r97",
+        "taskId": "t7",
+        "userId": "u6",
+        "estimatedMinutes": 13,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:01:00.000Z"
+      },
+      "r98": {
+        "id": "r98",
+        "taskId": "t8",
+        "userId": "u6",
+        "estimatedMinutes": 15,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:01:01.000Z"
+      },
+      "r99": {
+        "id": "r99",
+        "taskId": "t9",
+        "userId": "u6",
+        "estimatedMinutes": 21,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:01:02.000Z"
+      },
+      "r100": {
+        "id": "r100",
+        "taskId": "t10",
+        "userId": "u6",
+        "estimatedMinutes": 28,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:28:42.000Z"
+      },
+      "r101": {
+        "id": "r101",
+        "taskId": "t11",
+        "userId": "u6",
+        "estimatedMinutes": 34,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:28:43.000Z"
+      },
+      "r102": {
+        "id": "r102",
+        "taskId": "t12",
+        "userId": "u6",
+        "estimatedMinutes": 41,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:28:44.000Z"
+      },
+      "r103": {
+        "id": "r103",
+        "taskId": "t13",
+        "userId": "u6",
+        "estimatedMinutes": 9,
+        "painLevel": 7,
+        "importance": 5,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:28:45.000Z"
+      },
+      "r104": {
+        "id": "r104",
+        "taskId": "t14",
+        "userId": "u6",
+        "estimatedMinutes": 16,
+        "painLevel": 5,
+        "importance": 6,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:28:46.000Z"
+      },
+      "r105": {
+        "id": "r105",
+        "taskId": "t15",
+        "userId": "u6",
+        "estimatedMinutes": 22,
+        "painLevel": 6,
+        "importance": 5,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:28:47.000Z"
+      },
+      "r106": {
+        "id": "r106",
+        "taskId": "t16",
+        "userId": "u6",
+        "estimatedMinutes": 29,
+        "painLevel": 7,
+        "importance": 6,
+        "suggestedFrequency": 4,
+        "createdAt": "2025-01-01T10:28:48.000Z"
+      },
+      "r107": {
+        "id": "r107",
+        "taskId": "t17",
+        "userId": "u6",
+        "estimatedMinutes": 35,
+        "painLevel": 5,
+        "importance": 5,
+        "suggestedFrequency": 2,
+        "createdAt": "2025-01-01T10:28:49.000Z"
+      },
+      "r108": {
+        "id": "r108",
+        "taskId": "t18",
+        "userId": "u6",
+        "estimatedMinutes": 37,
+        "painLevel": 6,
+        "importance": 6,
+        "suggestedFrequency": 1,
+        "createdAt": "2025-01-01T10:28:50.000Z"
+      },
+      "mgsgm7ck7coh9cy3f95": {
+        "id": "mgsgm7ck7coh9cy3f95",
+        "taskId": "mgsglzg26qholxlhlfw",
+        "userId": "mgsglmr06kodqgrv58f",
+        "createdAt": "2025-10-15T20:44:50.228Z",
+        "estimatedMinutes": 12,
+        "painLevel": 12,
+        "importance": 2,
+        "suggestedFrequency": 2
+      }
+    },
+    "notifications": {},
+    "monthlyStats": {},
+    "taskSuggestions": [],
+    "isLoading": false,
+    "absences": {},
+    "temporaryResidents": {},
+    "postExecutionRatings": {},
+    "currentPeriod": {
+      "id": "2025-11-04_2025-12-05",
+      "start": "2025-11-05T00:00:00.000Z",
+      "end": "2025-12-05T00:00:00.000Z",
+      "days": 31
+    },
+    "debugMode": true
+  },
+  "savedAt": "2025-11-06T16:51:54.314Z"
+}

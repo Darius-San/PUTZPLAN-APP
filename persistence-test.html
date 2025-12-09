@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persistence Bug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .test-step {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Persistence Bug Test</h1>
+        <p>Dieser Test überprüft, ob die Deaktivierung des CrossBrowserSync das Persistierung-Problem löst.</p>
+        
+        <div id="status"></div>
+        
+        <button onclick="runTest()" id="testBtn">Test starten</button>
+        <button onclick="clearStorage()" id="clearBtn">Storage löschen</button>
+        <button onclick="manualRestartTest()" id="manualBtn" disabled>Nach Restart testen</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let testPeriodId = null;
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function addResult(step, message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'test-step';
+            stepDiv.innerHTML = `
+                <strong>Schritt ${step}:</strong>
+                <div class="status ${type}" style="margin-top: 5px;">${message}</div>
+            `;
+            resultsDiv.appendChild(stepDiv);
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('putzplan-data');
+            localStorage.removeItem('putzplan-sync');
+            updateStatus('Storage gelöscht', 'success');
+            document.getElementById('results').innerHTML = '';
+            testPeriodId = null;
+            document.getElementById('manualBtn').disabled = true;
+        }
+        
+        async function runTest() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            document.getElementById('results').innerHTML = '';
+            
+            updateStatus('Test wird gestartet...', 'info');
+            
+            try {
+                // Schritt 1: App-Frame laden
+                addResult(1, 'Lade die Putzplan-App in einem iFrame...', 'info');
+                
+                const iframe = document.createElement('iframe');
+                iframe.src = 'http://localhost:5175/';
+                iframe.style.width = '100%';
+                iframe.style.height = '600px';
+                iframe.style.border = '1px solid #ccc';
+                iframe.style.borderRadius = '4px';
+                
+                document.getElementById('results').appendChild(iframe);
+                
+                // Warte auf das Laden der App
+                await new Promise(resolve => {
+                    iframe.onload = resolve;
+                    setTimeout(resolve, 5000); // Timeout nach 5 Sekunden
+                });
+                
+                addResult(2, 'App geladen. Warte auf dataManager...', 'info');
+                
+                // Warte auf dataManager
+                let dataManager = null;
+                let attempts = 0;
+                
+                while (!dataManager && attempts < 20) {
+                    try {
+                        dataManager = iframe.contentWindow.dataManager;
+                    } catch (e) {
+                        // Cross-origin issues - expected
+                    }
+                    
+                    if (!dataManager) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        attempts++;
+                    }
+                }
+                
+                if (!dataManager) {
+                    addResult(3, 'FEHLER: dataManager nicht verfügbar (vermutlich Cross-Origin-Policy)', 'error');
+                    addResult(4, 'Alternative: Öffne http://localhost:5175/ in einem neuen Tab und führe folgenden Test durch:', 'warning');
+                    
+                    const manualScript = `
+// 1. Storage löschen
+localStorage.removeItem('putzplan-data');
+localStorage.removeItem('putzplan-sync');
+
+// 2. Zeitraum erstellen
+const start = new Date();
+const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+const period = dataManager.setCustomPeriod(start, end, false);
+console.log('Created period:', period.id);
+
+// 3. Prüfen ob in localStorage
+const stored = localStorage.getItem('putzplan-data');
+const data = JSON.parse(stored);
+console.log('Storage period:', data.state?.currentPeriod?.id);
+
+// 4. Page refresh (F5) und dann prüfen:
+// console.log('After restart:', dataManager.getState().currentPeriod?.id);
+                    `;
+                    
+                    const preElement = document.createElement('pre');
+                    preElement.textContent = manualScript;
+                    document.getElementById('results').appendChild(preElement);
+                    
+                    testBtn.disabled = false;
+                    return;
+                }
+                
+                addResult(3, '✅ dataManager verfügbar', 'success');
+                
+                // Schritt 4: Storage löschen
+                addResult(4, 'Lösche Storage für sauberen Test...', 'info');
+                iframe.contentWindow.localStorage.removeItem('putzplan-data');
+                iframe.contentWindow.localStorage.removeItem('putzplan-sync');
+                
+                // Schritt 5: Zeitraum erstellen
+                addResult(5, 'Erstelle Test-Zeitraum...', 'info');
+                
+                const start = new Date();
+                const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+                
+                const createdPeriod = dataManager.setCustomPeriod(start, end, false);
+                testPeriodId = createdPeriod.id;
+                
+                addResult(6, `✅ Zeitraum erstellt: ${createdPeriod.id}`, 'success');
+                
+                // Schritt 7: Persistence prüfen
+                await new Promise(resolve => setTimeout(resolve, 500)); // Warte auf Save
+                
+                addResult(7, 'Prüfe Persistierung...', 'info');
+                
+                const stored = iframe.contentWindow.localStorage.getItem('putzplan-data');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    const storedPeriod = data.state?.currentPeriod;
+                    
+                    if (storedPeriod?.id === createdPeriod.id) {
+                        addResult(8, `✅ Zeitraum korrekt in localStorage: ${storedPeriod.id}`, 'success');
+                        addResult(9, `Gespeichert um: ${data.savedAt}`, 'info');
+                        
+                        document.getElementById('manualBtn').disabled = false;
+                        addResult(10, '🎯 Jetzt manuell testen: Drücke F5 um die App neu zu laden, dann "Nach Restart testen" klicken', 'warning');
+                        
+                    } else {
+                        addResult(8, `❌ Zeitraum NICHT in localStorage! Erwartet: ${createdPeriod.id}, Gefunden: ${storedPeriod?.id}`, 'error');
+                    }
+                } else {
+                    addResult(8, '❌ Keine Daten in localStorage gefunden!', 'error');
+                }
+                
+            } catch (error) {
+                addResult('ERROR', `Testfehler: ${error.message}`, 'error');
+            } finally {
+                testBtn.disabled = false;
+            }
+        }
+        
+        function manualRestartTest() {
+            if (!testPeriodId) {
+                updateStatus('Kein Test-Zeitraum verfügbar. Führe zuerst den Test aus.', 'error');
+                return;
+            }
+            
+            addResult('RESTART', 'Prüfe nach manuellem Restart...', 'info');
+            
+            // Erstelle neuen iFrame um Restart zu simulieren
+            const iframe = document.createElement('iframe');
+            iframe.src = 'http://localhost:5175/';
+            iframe.style.width = '100%';
+            iframe.style.height = '300px';
+            iframe.style.border = '1px solid #28a745';
+            iframe.style.borderRadius = '4px';
+            iframe.style.marginTop = '10px';
+            
+            iframe.onload = async () => {
+                // Warte auf App-Initialisierung
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                try {
+                    const dataManager = iframe.contentWindow.dataManager;
+                    if (dataManager) {
+                        const currentState = dataManager.getState();
+                        const currentPeriod = currentState.currentPeriod;
+                        
+                        if (currentPeriod?.id === testPeriodId) {
+                            addResult('RESULT', `🎉 SUCCESS! Zeitraum hat Restart überlebt: ${currentPeriod.id}`, 'success');
+                            addResult('FINAL', '✅ CrossBrowserSync Fix funktioniert! Persistierung-Bug behoben!', 'success');
+                        } else {
+                            addResult('RESULT', `❌ FAILURE! Zeitraum nach Restart verloren. Erwartet: ${testPeriodId}, Gefunden: ${currentPeriod?.id || 'null'}`, 'error');
+                            addResult('FINAL', '🚨 Bug existiert noch immer trotz CrossBrowserSync Deaktivierung', 'error');
+                            
+                            // Debug-Info
+                            const stored = iframe.contentWindow.localStorage.getItem('putzplan-data');
+                            if (stored) {
+                                const data = JSON.parse(stored);
+                                addResult('DEBUG', `Storage noch vorhanden - Period: ${data.state?.currentPeriod?.id}`, 'warning');
+                            } else {
+                                addResult('DEBUG', 'Storage komplett gelöscht', 'warning');
+                            }
+                        }
+                    } else {
+                        addResult('RESULT', 'dataManager nicht verfügbar nach Restart', 'error');
+                    }
+                } catch (error) {
+                    addResult('RESULT', `Fehler beim Restart-Test: ${error.message}`, 'error');
+                }
+            };
+            
+            document.getElementById('results').appendChild(iframe);
+        }
+        
+        // Auto-status beim Laden
+        updateStatus('Bereit für Persistence Bug Test. Die App muss auf localhost:5175 laufen.', 'info');
+    </script>
+</body>
+</html>

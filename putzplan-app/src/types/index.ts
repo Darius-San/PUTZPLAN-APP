@@ -13,6 +13,8 @@ export interface User {
   currentMonthPoints: number;
   targetMonthlyPoints: number;
   totalCompletedTasks: number;
+  // Optionaler WhatsApp-/Kontakt-String für individuelle Benachrichtigungen
+  whatsappContact?: string;
 }
 
 // WG (Wohngemeinschaft)
@@ -24,6 +26,41 @@ export interface WG {
   memberIds: string[];
   inviteCode: string;
   settings: WGSettings;
+  periods?: PeriodDefinition[];
+  historicalPeriods?: HistoricalPeriod[];
+}
+
+// Period Definition für Time-based Analytics
+export interface PeriodDefinition {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  targetPoints: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// Historical Period mit Analytics Summary
+export interface HistoricalPeriod {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  targetPoints: number;
+  isActive: false;
+  createdAt: string;
+  archivedAt: string;
+  summary: {
+    totalExecutions: number;
+    totalPoints: number;
+    memberStats: {
+      userId: string;
+      executions: number;
+      points: number;
+      achievement: number;
+    }[];
+  };
 }
 
 // WG-Einstellungen
@@ -33,6 +70,17 @@ export interface WGSettings {
     lowPointsThreshold: number; // Prozent der Zielpunkte
     overdueDaysThreshold: number; // Nach wie vielen Tagen Task als überfällig gilt
     enablePushNotifications: boolean;
+  };
+  // Legacy single recipient (kept for compatibility). Prefer using groupSendEnabled + whatsappGroupName.
+  whatsappRecipient?: string; // Telefonnummer oder Gruppenchat für Alarm-Nachrichten
+  // Wenn aktiviert, sendet die WG-Nachrichten an einen Gruppen-Chat-Namen statt an einzelne Nummern
+  groupSendEnabled?: boolean;
+  // Name der WG-Gruppe (z.B. WhatsApp-Gruppenname), an die Nachrichten gesendet werden
+  whatsappGroupName?: string;
+  // Optional per-WG hot task bonus settings
+  hotTaskBonus?: {
+    enabled: boolean;
+    percent: number;
   };
 }
 
@@ -45,6 +93,10 @@ export interface Task {
   emoji: string; // Emoticon für den Task
   category: TaskCategory;
   checklist?: string[]; // optionale Checklisten-Punkte
+  // Optional: zufällige initiale Zuweisung für Demo/Debug Zwecke
+  assignedUserId?: string;
+  // Optional flag: whether this task currently has an active alarm set
+  isAlarmed?: boolean;
   
   // Bewertungssystem (basierend auf Community-Bewertungen)
   averageMinutes: number; // Durchschnittliche Minuten aller Bewertungen
@@ -156,7 +208,8 @@ export interface PostExecutionRating {
 export interface Absence {
   id: string;
   userId: string;
-  reason: 'vacation' | 'work' | 'family' | 'other';
+  // Freitext Grund (vorher fest 'gone fishing')
+  reason: string;
   startDate: Date;
   endDate: Date;
   createdAt: Date;
@@ -278,6 +331,8 @@ export interface AppState {
   // UI State
   isLoading: boolean;
   lastSyncAt?: Date;
+  // Debug utilities (optional, default false if missing in persisted state)
+  debugMode?: boolean;
 }
 
 // API Response Types für Backend-Integration (später)

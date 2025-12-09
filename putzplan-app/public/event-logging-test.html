@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event-Logging Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .button:hover { background: #2563eb; }
+        .log-section { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+        .log-entry { padding: 8px; margin: 5px 0; background: white; border-left: 4px solid #3b82f6; border-radius: 3px; font-family: monospace; font-size: 12px; }
+        .critical { border-left-color: #dc2626; }
+        .snapshot { background: #fef3c7; border-left-color: #f59e0b; }
+        .clear-btn { background: #dc2626; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Event-Logging Integration Test</h1>
+        <p>Teste die Event-Sourcing Integration mit Task-Execution Events</p>
+        
+        <div class="status" id="statusDiv">
+            <strong>Status:</strong> Initialisierung...
+        </div>
+
+        <h3>Setup</h3>
+        <button class="button" onclick="setupTestData()">📝 Test-WG & User erstellen</button>
+        <button class="button" onclick="createTestTask()">📋 Test-Task erstellen</button>
+        
+        <h3>Task Execution Tests</h3>
+        <button class="button" onclick="executeTestTask()">✅ Task ausführen (executeTask)</button>
+        <button class="button" onclick="executeTaskForUser()">👤 Task für User ausführen (executeTaskForUser)</button>
+        <button class="button" onclick="verifyExecution()">✔️ Execution verifizieren</button>
+
+        <h3>Event-Sourcing</h3>
+        <button class="button" onclick="showEventLog()">📊 Event Log anzeigen</button>
+        <button class="button" onclick="showSnapshots()">📸 Snapshots anzeigen</button>
+        <button class="button" onclick="clearEventLog()">🗑️ Event Log löschen</button>
+
+        <div class="log-section">
+            <h4>Event Log & Snapshots</h4>
+            <div id="eventLog">Keine Events geladen...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import der Module
+        import { dataManager } from '../dist/assets/index.js';
+        import { eventSourcingManager } from '../dist/assets/index.js';
+        
+        let testUser = null;
+        let testWG = null;
+        let testTask = null;
+        let testExecution = null;
+
+        window.setupTestData = function() {
+            try {
+                // User erstellen
+                testUser = dataManager.createUser({
+                    name: 'Test User',
+                    email: 'test@example.com',
+                    avatar: '👨‍💻',
+                    targetMonthlyPoints: 100
+                });
+
+                // WG erstellen
+                testWG = dataManager.createWG({
+                    name: 'Test WG',
+                    settings: {
+                        monthlyPointsTarget: 100,
+                        reminderSettings: {
+                            lowPointsThreshold: 20,
+                            overdueDaysThreshold: 3,
+                            enablePushNotifications: true
+                        }
+                    }
+                });
+
+                updateStatus('✅ Test-User und WG erstellt', 'success');
+                console.log('Setup completed:', { testUser, testWG });
+            } catch (error) {
+                updateStatus('❌ Setup Fehler: ' + error.message, 'error');
+                console.error('Setup error:', error);
+            }
+        };
+
+        window.createTestTask = function() {
+            if (!testUser || !testWG) {
+                updateStatus('❌ Erst Setup ausführen!', 'error');
+                return;
+            }
+
+            try {
+                testTask = dataManager.createTask({
+                    title: 'Test Task - Event Logging',
+                    description: 'Ein Test Task um Event-Logging zu testen',
+                    emoji: '🧹',
+                    category: 'general',
+                    timeEstimate: 30,
+                    difficultyScore: 5,
+                    unpleasantnessScore: 4,
+                    maxDaysBetween: 7,
+                    requiresPhoto: false
+                });
+
+                updateStatus('✅ Test-Task erstellt: ' + testTask.title, 'success');
+                console.log('Task created:', testTask);
+            } catch (error) {
+                updateStatus('❌ Task-Erstellung Fehler: ' + error.message, 'error');
+                console.error('Task creation error:', error);
+            }
+        };
+
+        window.executeTestTask = function() {
+            if (!testTask) {
+                updateStatus('❌ Erst Test-Task erstellen!', 'error');
+                return;
+            }
+
+            try {
+                testExecution = dataManager.executeTask(testTask.id, {
+                    notes: 'Test-Ausführung über executeTask()'
+                });
+
+                updateStatus('✅ Task ausgeführt! Execution ID: ' + testExecution.id, 'success');
+                console.log('Task executed:', testExecution);
+                showEventLog(); // Auto-refresh
+            } catch (error) {
+                updateStatus('❌ Task-Ausführung Fehler: ' + error.message, 'error');
+                console.error('Task execution error:', error);
+            }
+        };
+
+        window.executeTaskForUser = function() {
+            if (!testTask || !testUser) {
+                updateStatus('❌ Erst Setup und Task erstellen!', 'error');
+                return;
+            }
+
+            try {
+                const execution = dataManager.executeTaskForUser(testTask.id, testUser.id, {
+                    notes: 'Test-Ausführung über executeTaskForUser()'
+                });
+
+                updateStatus('✅ Task für User ausgeführt! Execution ID: ' + execution.id, 'success');
+                console.log('Task executed for user:', execution);
+                showEventLog(); // Auto-refresh
+            } catch (error) {
+                updateStatus('❌ Task-Ausführung Fehler: ' + error.message, 'error');
+                console.error('Task execution for user error:', error);
+            }
+        };
+
+        window.verifyExecution = function() {
+            if (!testExecution) {
+                updateStatus('❌ Erst Task ausführen!', 'error');
+                return;
+            }
+
+            try {
+                dataManager.verifyExecution(testExecution.id, testUser.id);
+                updateStatus('✅ Execution verifiziert!', 'success');
+                showEventLog(); // Auto-refresh
+            } catch (error) {
+                updateStatus('❌ Verifikation Fehler: ' + error.message, 'error');
+                console.error('Verification error:', error);
+            }
+        };
+
+        window.showEventLog = function() {
+            try {
+                const events = eventSourcingManager.getEvents();
+                const snapshots = eventSourcingManager.getSnapshots();
+                
+                let html = '<h5>📊 Events (' + events.length + '):</h5>';
+                
+                if (events.length === 0) {
+                    html += '<div class="log-entry">Keine Events gefunden</div>';
+                } else {
+                    events.slice(-10).forEach(event => {
+                        const time = new Date(event.timestamp).toLocaleTimeString();
+                        const cssClass = event.metadata.critical ? 'log-entry critical' : 'log-entry';
+                        html += `<div class="${cssClass}">
+                            <strong>[${time}] ${event.action}</strong> - User: ${event.userId || 'N/A'} - WG: ${event.wgId || 'N/A'}<br>
+                            Data: ${JSON.stringify(event.data, null, 2)}
+                        </div>`;
+                    });
+                }
+
+                html += '<h5>📸 Snapshots (' + snapshots.length + '):</h5>';
+                if (snapshots.length === 0) {
+                    html += '<div class="log-entry">Keine Snapshots gefunden</div>';
+                } else {
+                    snapshots.slice(-5).forEach(snapshot => {
+                        const time = new Date(snapshot.timestamp).toLocaleTimeString();
+                        html += `<div class="log-entry snapshot">
+                            <strong>[${time}] Snapshot</strong> - Trigger: ${snapshot.triggerEvent}<br>
+                            Size: ${snapshot.metadata.size} bytes - Tasks: ${Object.keys(snapshot.state.tasks || {}).length}
+                        </div>`;
+                    });
+                }
+
+                document.getElementById('eventLog').innerHTML = html;
+                updateStatus('✅ Event Log aktualisiert', 'success');
+            } catch (error) {
+                updateStatus('❌ Event Log Fehler: ' + error.message, 'error');
+                console.error('Event log error:', error);
+            }
+        };
+
+        window.showSnapshots = function() {
+            try {
+                const snapshots = eventSourcingManager.getSnapshots();
+                console.log('All snapshots:', snapshots);
+                updateStatus('✅ Snapshots in Konsole ausgegeben (' + snapshots.length + ')', 'success');
+            } catch (error) {
+                updateStatus('❌ Snapshot Fehler: ' + error.message, 'error');
+                console.error('Snapshot error:', error);
+            }
+        };
+
+        window.clearEventLog = function() {
+            try {
+                eventSourcingManager.clearTestData();
+                updateStatus('✅ Event Log gelöscht', 'success');
+                showEventLog();
+            } catch (error) {
+                updateStatus('❌ Clear Fehler: ' + error.message, 'error');
+                console.error('Clear error:', error);
+            }
+        };
+
+        function updateStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('statusDiv');
+            statusDiv.innerHTML = '<strong>Status:</strong> ' + message;
+            statusDiv.className = 'status ' + type;
+        }
+
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus('✅ Event-Logging Test bereit!', 'success');
+            console.log('Test page loaded. DataManager:', dataManager);
+            console.log('Event Sourcing Manager:', eventSourcingManager);
+        });
+    </script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest';
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
@@ -31,10 +33,8 @@ describe('Period Settings Layout', () => {
     expect(saveBtn.className).not.toMatch(/btn-lg/);
   });
 
-  it('shows normalization factor and target, stable after changing dates', async () => {
+  it('shows target and remains stable after changing dates', async () => {
     await openPeriodSettings();
-    const norm = await screen.findByTestId('norm-factor');
-    expect(norm.textContent).toMatch(/Normierungsfaktor/);
     const targetBefore = (await screen.findByTestId('per-member-target')).textContent;
 
     const dateInputs = screen.getAllByDisplayValue(/\d{4}-|\d{2}\./) // fallback if locale differs

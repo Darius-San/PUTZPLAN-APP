@@ -36,7 +36,8 @@ export const ConfirmTaskModal: React.FC<ConfirmTaskModalProps> = ({ task, user, 
             data-modal-animate
             style={{
               background: 'linear-gradient(180deg, rgba(255,244,230,0.92) 0%, rgba(250,226,198,0.94) 100%)',
-              boxShadow: '0 4px 18px -4px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.4)'
+              boxShadow: '0 4px 18px -4px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.4)',
+              borderTopLeftRadius: '16px', borderTopRightRadius: '16px', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px'
             }}
           >
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2" id="task-confirm-heading">

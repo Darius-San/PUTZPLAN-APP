@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppState, Task, User, WG, TaskExecution, TaskSuggestion } from '../types';
 import { dataManager } from '../services/dataManager';
 import { generateTaskSuggestions } from '../utils/taskUtils';
@@ -99,12 +99,21 @@ export function usePutzplanStore() {
     dataManager.clearCurrentWG();
   }, []);
 
+  // Hard reset of all member targets to WG target (debug/recovery)
+  const resetMembersTargetsToWgTarget = useCallback((wgId?: string) => {
+    return (dataManager as any).resetMembersTargetsToWgTarget(wgId);
+  }, []);
+
   const addTask = useCallback((task: Task) => {
     dataManager.addTask(task);
   }, []);
 
   const updateTask = useCallback((taskId: string, updates: Partial<Task>) => {
     dataManager.updateTask(taskId, updates as any);
+  }, []);
+
+  const deleteTask = useCallback((taskId: string) => {
+    dataManager.deleteTask(taskId);
   }, []);
 
   // ========================================
@@ -155,6 +164,53 @@ export function usePutzplanStore() {
     if (!state.currentUser) throw new Error('No current user');
     dataManager.verifyExecution(executionId, state.currentUser.id);
   }, [state.currentUser]);
+
+  // ========================================
+  // COLLABORATIVE TASK RATINGS
+  // ========================================
+  const upsertTaskRating = useCallback((taskId: string, data: { estimatedMinutes: number; painLevel: number; importance: number; suggestedFrequency: number; }) => {
+    return dataManager.upsertTaskRating(taskId, data);
+  }, []);
+
+  const upsertTaskRatingForUser = useCallback((userId: string, taskId: string, data: { estimatedMinutes: number; painLevel: number; importance: number; suggestedFrequency: number; }) => {
+    return dataManager.upsertTaskRatingForUser(userId, taskId, data);
+  }, []);
+
+  const getRatingsForUser = useCallback((userId: string) => {
+    return dataManager.getRatingsForUser(userId);
+  }, []);
+
+  const isUserRatingsComplete = useCallback((userId: string) => {
+    return dataManager.isUserRatingsComplete(userId);
+  }, []);
+
+  const recalculateTaskPoints = useCallback(() => {
+    console.debug && console.debug('🔄 [Store] recalculateTaskPoints gestartet');
+    console.debug && console.debug('📋 [Store] Tasks vor Update:', Object.values(state.tasks).map(t => `${t.title}: ${t.pointsPerExecution}P`));
+    
+    dataManager.recalculateTaskPoints();
+    
+    console.debug && console.debug('📋 [Store] Tasks nach dataManager Update:', Object.values(dataManager.getState().tasks).map(t => `${t.title}: ${t.pointsPerExecution}P`));
+    
+    // Force re-render durch neue Object-Referenz
+    const newState = { ...dataManager.getState() };
+    newState.tasks = { ...newState.tasks };
+    
+    // Zusätzlich: Force Update mit einem neuen Timestamp
+    (window as any).__forceUpdate = Date.now();
+    
+    setState(newState);
+    
+    console.debug && console.debug('📋 [Store] Tasks nach setState:', Object.values(newState.tasks).map(t => `${t.title}: ${t.pointsPerExecution}P`));
+    console.debug && console.debug('✅ [Store] recalculateTaskPoints abgeschlossen, Force Update:', (window as any).__forceUpdate);
+  }, [state.tasks]);
+
+  const recalculateWGPointDistribution = useCallback(() => {
+    const result = dataManager.recalculateWGPointDistribution();
+    // Force re-render um sicherzustellen, dass die Komponenten die aktualisierten WG-Daten sehen
+    setState(dataManager.getState());
+    return result;
+  }, []);
 
   // ========================================
   // COMPUTED VALUES
@@ -254,6 +310,54 @@ export function usePutzplanStore() {
     return dataManager.getTemporaryResidentMultiplier();
   }, [state.temporaryResidents]);
 
+  // Absences
+  // Abwesenheit: Grund ist fest 'gone fishing'
+  const addAbsence = useCallback((userId: string, startDate: Date, endDate: Date, reason: string = 'gone fishing') => {
+    return dataManager.addAbsence({ userId, reason, startDate, endDate });
+  }, []);
+  const removeAbsence = useCallback((userId: string, absenceId: string) => {
+    return dataManager.removeAbsence(userId, absenceId);
+  }, []);
+  const getUserAbsences = useCallback((userId: string) => {
+    return (state.absences?.[userId] || []);
+  }, [state.absences]);
+
+  // Orphan cleanup
+  const removeOrphanUsers = useCallback(() => {
+    // direct dataManager call; triggers state update & subscriber notify
+    return (dataManager as any).removeOrphanUsers();
+  }, []);
+
+  // Period / Metric exposure
+  const setCustomPeriod = useCallback((start: Date, end: Date, resetData: boolean = false) => {
+    return dataManager.setCustomPeriod(start, end, resetData);
+  }, []);
+
+  const resetForNewPeriod = useCallback(() => {
+    return dataManager.resetForNewPeriod();
+  }, []);
+
+  const getHistoricalPeriods = useCallback(() => {
+    return dataManager.getHistoricalPeriods();
+  }, []);
+  
+  // Period display selection for historical viewing
+  const setDisplayPeriod = useCallback((periodId: string | null) => {
+    return dataManager.setDisplayPeriod(periodId);
+  }, []);
+  
+  const getDisplayPeriod = useCallback(() => {
+    return dataManager.getDisplayPeriod();
+  }, []);
+  
+  const displayPeriodExecutions = useMemo(() => {
+    return dataManager.getDisplayPeriodExecutions();
+  }, [state]); // Re-compute when state changes
+
+  const periodTargets = useCallback(() => {
+    return dataManager.computePeriodTargets();
+  }, [state.currentWG, state.currentPeriod, state.tasks, state.ratings]);
+
   const currentUserProgress = useCallback(() => {
     if (!state.currentUser) return { percentage: 0, points: 0, target: 100 };
     
@@ -317,6 +421,8 @@ export function usePutzplanStore() {
   return {
     // State
     state,
+    debugMode: state.debugMode,
+    toggleDebugMode: () => dataManager.toggleDebugMode(),
     
     // User actions
     createUser,
@@ -332,8 +438,10 @@ export function usePutzplanStore() {
   setCurrentWG,
   updateWG,
   clearCurrentWG,
+  resetMembersTargetsToWgTarget,
   addTask,
   updateTask,
+  deleteTask,
     
     // Task actions
     createTask,
@@ -346,9 +454,26 @@ export function usePutzplanStore() {
     currentUserProgress: currentUserProgress(),
     recentExecutions: recentExecutions(),
     unreadNotificationsCount: unreadNotificationsCount(),
+    upsertTaskRating,
+    upsertTaskRatingForUser,
+    getRatingsForUser,
+    isUserRatingsComplete,
+    recalculateTaskPoints,
+    recalculateWGPointDistribution,
   pendingRatingsCount: pendingRatingsCount(),
   adjustedMonthlyTarget: adjustedMonthlyTarget(),
   temporaryResidentMultiplier: temporaryResidentMultiplier(),
+  periodTargets: periodTargets(),
+  setCustomPeriod,
+  resetForNewPeriod,
+  getHistoricalPeriods,
+  setDisplayPeriod,
+  getDisplayPeriod,
+  displayPeriodExecutions,
+  addAbsence,
+  removeAbsence,
+  getUserAbsences,
+  removeOrphanUsers,
     
     // Utility
     clearAllData,

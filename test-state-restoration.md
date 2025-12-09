@@ -1,0 +1,42 @@
+#!/bin/bash
+# Test-Skript für State-Wiederherstellung
+
+echo "🔍 TESTING STATE RESTORATION FUNCTIONALITY"
+echo "=========================================="
+
+echo ""
+echo "✅ VERBESSERUNGEN IMPLEMENTIERT:"
+echo "1. ✅ Direkte 'Laden' Buttons bei jedem Snapshot"
+echo "2. ✅ Separate 'Details' Buttons für ausführliche Vorschau"
+echo "3. ✅ Buttons sind IMMER sichtbar (kein Hover erforderlich)"
+echo "4. ✅ Korrigierte async/await Funktionalität"
+echo "5. ✅ Verbesserter UX mit klaren Bestätigungsdialogen"
+echo "6. ✅ Automatisches Neuladen nach Wiederherstellung"
+
+echo ""
+echo "🧪 TEST-ANWEISUNGEN:"
+echo "==================="
+echo "1. Navigiere zu http://localhost:5175"
+echo "2. Klicke auf das Debug-Symbol (⚙️) um Debug-Mode zu aktivieren"
+echo "3. Gehe zu 'Event-Sourcing' Sektion"
+echo "4. Klicke auf 'Test-Daten generieren' um Snapshots zu erstellen"
+echo "5. Teste die grünen '🔄 Laden' Buttons:"
+echo "   - Sollten sofort eine RESTORE-Bestätigung anzeigen"
+echo "   - Nach Eingabe von 'RESTORE' sollte der State geladen werden"
+echo "   - Die Seite sollte automatisch neu laden"
+echo "6. Teste die blauen '👁️ Details' Buttons:"
+echo "   - Sollten eine detaillierte Vorschau mit Risikoanalyse anzeigen"
+echo "   - Ermöglichen ausführliche Prüfung vor Wiederherstellung"
+
+echo ""
+echo "🎯 ERWARTETE FUNKTIONALITÄT:"
+echo "============================"
+echo "- Grüne 'Laden' Buttons: Schnelle Wiederherstellung mit Bestätigung"
+echo "- Blaue 'Details' Buttons: Ausführliche Analyse vor Wiederherstellung"
+echo "- Beide Optionen führen zur erfolgreichen State-Wiederherstellung"
+echo "- Seite lädt automatisch neu nach erfolgreicher Wiederherstellung"
+echo "- Alle Event-Logging Funktionen bleiben funktionsfähig"
+
+echo ""
+echo "🚀 APP IST BEREIT ZUM TESTEN!"
+echo "Öffne: http://localhost:5175"

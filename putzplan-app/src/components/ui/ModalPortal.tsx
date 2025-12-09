@@ -49,8 +49,14 @@ export const ModalPortal: React.FC<ModalPortalProps> = ({
     // Mark document for global blur styling (allows blurring only once regardless of nesting)
     body.dataset.modalActive = 'true';
     // Accessibility: hide app root from screen readers while modal open
-    const appRoot = document.getElementById('root');
-    if (appRoot) appRoot.setAttribute('aria-hidden', 'true');
+    let appRoot = document.getElementById('root');
+    if (!appRoot) {
+      // In test environments, #root might not exist if App is not mounted via main.jsx
+      appRoot = document.createElement('div');
+      appRoot.id = 'root';
+      document.body.prepend(appRoot);
+    }
+    appRoot.setAttribute('aria-hidden', 'true');
     return () => { body.style.overflow = prevOverflow; };
   }, [isOpen]);
 

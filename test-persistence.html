@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Putzplan Persistence Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        .test-result { padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #results { max-height: 400px; overflow-y: auto; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Putzplan Persistence Ausgiebiger Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Steuerung</h2>
+        <button onclick="runAllTests()">🚀 Alle Tests Durchführen</button>
+        <button onclick="clearResults()">🧹 Ergebnisse Löschen</button>
+        <button onclick="inspectLocalStorage()">🔍 LocalStorage Inspizieren</button>
+        <button onclick="simulateDataCreation()">➕ Test-Daten Erstellen</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Ergebnisse</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+        }
+
+        function inspectLocalStorage() {
+            log('🔍 LocalStorage Inspektion gestartet...', 'info');
+            
+            try {
+                const putzplanData = localStorage.getItem('putzplan-data');
+                if (putzplanData) {
+                    const parsed = JSON.parse(putzplanData);
+                    log(`✅ putzplan-data Key gefunden! Version: ${parsed.version}`, 'success');
+                    log(`📊 Datenstruktur: ${Object.keys(parsed.state || {}).join(', ')}`, 'info');
+                    
+                    if (parsed.state) {
+                        const state = parsed.state;
+                        log(`👥 Benutzer: ${state.users?.length || 0}`, 'info');
+                        log(`🏠 WGs: ${state.wgs?.length || 0}`, 'info');
+                        log(`📋 Tasks: ${state.tasks?.length || 0}`, 'info');
+                        log(`⏰ Perioden: ${state.periods?.length || 0}`, 'info');
+                        log(`✅ Ausführungen: ${state.executions?.length || 0}`, 'info');
+                    }
+                    
+                    // Zeige JSON in kompakter Form
+                    const preview = JSON.stringify(parsed, null, 2).substring(0, 500) + '...';
+                    log(`<pre>${preview}</pre>`, 'info');
+                } else {
+                    log('❌ Keine putzplan-data in localStorage gefunden!', 'error');
+                }
+
+                // Zeige alle localStorage Keys
+                const allKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    allKeys.push(localStorage.key(i));
+                }
+                log(`🗂️ Alle localStorage Keys: ${allKeys.join(', ')}`, 'info');
+
+            } catch (error) {
+                log(`❌ Fehler bei LocalStorage Inspektion: ${error.message}`, 'error');
+            }
+        }
+
+        function simulateDataCreation() {
+            log('🎯 Simuliere Daten-Erstellung...', 'info');
+            
+            try {
+                // Erstelle Test-Daten im localStorage Format
+                const testData = {
+                    version: '1.0',
+                    timestamp: new Date().toISOString(),
+                    state: {
+                        users: [
+                            { id: 'test-user-1', name: 'Test User 1', email: 'test1@example.com' },
+                            { id: 'test-user-2', name: 'Test User 2', email: 'test2@example.com' }
+                        ],
+                        wgs: [
+                            { id: 'test-wg-1', name: 'Test WG 1', members: ['test-user-1', 'test-user-2'] }
+                        ],
+                        periods: [
+                            { 
+                                id: 'test-period-' + Date.now(),
+                                name: 'Persistence Test Periode',
+                                startDate: new Date().toISOString(),
+                                endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                                isActive: true
+                            }
+                        ],
+                        tasks: [],
+                        executions: [],
+                        settings: {},
+                        notifications: []
+                    }
+                };
+
+                localStorage.setItem('putzplan-data', JSON.stringify(testData));
+                log('✅ Test-Daten erfolgreich in localStorage gespeichert!', 'success');
+                
+                // Verifikation
+                const saved = localStorage.getItem('putzplan-data');
+                const parsed = JSON.parse(saved);
+                log(`✅ Verifikation: ${parsed.state.periods.length} Periode(n) gespeichert`, 'success');
+
+            } catch (error) {
+                log(`❌ Fehler bei Test-Daten Erstellung: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAppReload() {
+            log('🔄 App Reload Test gestartet...', 'info');
+            
+            // Aktuelle Daten vor Reload sichern
+            const beforeReload = localStorage.getItem('putzplan-data');
+            
+            if (!beforeReload) {
+                log('⚠️ Keine Daten vor Reload vorhanden, erstelle Test-Daten', 'info');
+                simulateDataCreation();
+            }
+
+            log('💾 Daten vor Reload gesichert, simuliere Reload...', 'info');
+            
+            // Simuliere Reload durch kurze Wartezeit
+            setTimeout(() => {
+                const afterReload = localStorage.getItem('putzplan-data');
+                
+                if (afterReload === beforeReload) {
+                    log('✅ PERSISTENCE TEST BESTANDEN: Daten sind nach Reload identisch!', 'success');
+                } else if (afterReload && beforeReload) {
+                    log('⚠️ Daten unterscheiden sich nach Reload (möglicherweise automatische Updates)', 'info');
+                } else if (!afterReload) {
+                    log('❌ PERSISTENCE TEST FEHLGESCHLAGEN: Daten nach Reload verschwunden!', 'error');
+                } else {
+                    log('🔍 Unerwarteter Zustand nach Reload-Test', 'info');
+                }
+            }, 1000);
+        }
+
+        function testDataIntegrity() {
+            log('🔒 Datenintegritäts-Test gestartet...', 'info');
+            
+            try {
+                const data = localStorage.getItem('putzplan-data');
+                if (!data) {
+                    log('❌ Keine Daten für Integritäts-Test verfügbar', 'error');
+                    return;
+                }
+
+                const parsed = JSON.parse(data);
+                
+                // Version Check
+                if (parsed.version === '1.0') {
+                    log('✅ Version korrekt (1.0)', 'success');
+                } else {
+                    log(`⚠️ Unerwartete Version: ${parsed.version}`, 'error');
+                }
+
+                // State Structure Check
+                const requiredKeys = ['users', 'wgs', 'tasks', 'executions', 'periods'];
+                const stateKeys = Object.keys(parsed.state || {});
+                
+                for (const key of requiredKeys) {
+                    if (stateKeys.includes(key)) {
+                        log(`✅ State Key '${key}' vorhanden`, 'success');
+                    } else {
+                        log(`❌ State Key '${key}' fehlt`, 'error');
+                    }
+                }
+
+                // JSON Validierung
+                JSON.stringify(parsed.state);
+                log('✅ JSON Struktur ist valid', 'success');
+
+            } catch (error) {
+                log(`❌ Datenintegritäts-Test fehlgeschlagen: ${error.message}`, 'error');
+            }
+        }
+
+        function testLargeDataSet() {
+            log('📈 Große Datenmenge Test gestartet...', 'info');
+            
+            try {
+                const largeState = {
+                    version: '1.0',
+                    timestamp: new Date().toISOString(),
+                    state: {
+                        users: [],
+                        wgs: [],
+                        tasks: [],
+                        executions: [],
+                        periods: [],
+                        settings: {},
+                        notifications: []
+                    }
+                };
+
+                // Erstelle 100 Test-Benutzer
+                for (let i = 0; i < 100; i++) {
+                    largeState.state.users.push({
+                        id: `stress-user-${i}`,
+                        name: `Stress Test User ${i}`,
+                        email: `stress${i}@test.com`
+                    });
+                }
+
+                // Erstelle 50 Test-Perioden
+                for (let i = 0; i < 50; i++) {
+                    largeState.state.periods.push({
+                        id: `stress-period-${i}`,
+                        name: `Stress Test Periode ${i}`,
+                        startDate: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString(),
+                        endDate: new Date(Date.now() + (i + 7) * 24 * 60 * 60 * 1000).toISOString(),
+                        isActive: i === 0
+                    });
+                }
+
+                const dataSize = JSON.stringify(largeState).length;
+                log(`📊 Erstelle große Datenmenge: ${dataSize} Zeichen`, 'info');
+
+                localStorage.setItem('putzplan-data-stress', JSON.stringify(largeState));
+                
+                // Verifikation
+                const retrieved = localStorage.getItem('putzplan-data-stress');
+                if (retrieved && JSON.parse(retrieved).state.users.length === 100) {
+                    log('✅ Große Datenmenge erfolgreich gespeichert und geladen', 'success');
+                    
+                    // Cleanup
+                    localStorage.removeItem('putzplan-data-stress');
+                    log('🧹 Stress-Test Daten bereinigt', 'info');
+                } else {
+                    log('❌ Stress-Test fehlgeschlagen', 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Große Datenmenge Test fehlgeschlagen: ${error.message}`, 'error');
+            }
+        }
+
+        async function runAllTests() {
+            log('🚀 Starte ausgiebigen Persistence-Test...', 'info');
+            log('================================================', 'info');
+            
+            // Test 1: LocalStorage Inspektion
+            inspectLocalStorage();
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Test 2: Datenintegritätsprüfung
+            testDataIntegrity();
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Test 3: App Reload Simulation
+            await testAppReload();
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Test 4: Große Datenmenge
+            testLargeDataSet();
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            log('================================================', 'info');
+            log('🎉 Alle Tests abgeschlossen!', 'success');
+        }
+
+        // Initial Check beim Laden der Seite
+        window.onload = function() {
+            log('🔧 Persistence Test Tool geladen', 'info');
+            log('Klicke auf "Alle Tests Durchführen" um zu starten', 'info');
+        };
+    </script>
+</body>
+</html>
