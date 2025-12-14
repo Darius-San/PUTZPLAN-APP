@@ -154,6 +154,8 @@ export interface TaskExecution {
   taskId: string;
   executedBy: string;
   executedAt: Date;
+  // Optional: associated period id to make executions explicitly belong to a period
+  periodId?: string;
   
   // Beweis/Dokumentation
   photo?: string; // Base64 oder URL

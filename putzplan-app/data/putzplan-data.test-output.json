@@ -39,7 +39,9 @@
           "groupId": "",
           "enabled": true
         }
-      }
+      },
+      "periods": [],
+      "historicalPeriods": []
     },
     "wgs": {
       "wg-darius": {
@@ -70,26 +72,8 @@
             "enabled": true
           }
         },
-        "periods": [
-          {
-            "id": "2025-12-31_2026-01-31",
-            "start": "2025-12-31T23:00:00.000Z",
-            "end": "2026-01-31T23:00:00.000Z",
-            "days": 31,
-            "label": "01.01 – 31.01",
-            "createdAt": "2025-12-10T16:17:07.809Z"
-          }
-        ],
-        "historicalPeriods": [
-          {
-            "id": "2025-12-31_2026-01-31",
-            "start": "2025-12-31T23:00:00.000Z",
-            "end": "2026-01-31T23:00:00.000Z",
-            "days": 31,
-            "label": "01.01 – 31.01",
-            "createdAt": "2025-12-10T16:17:07.809Z"
-          }
-        ]
+        "periods": [],
+        "historicalPeriods": []
       },
       "mgsglmqzyd26uaqqvp": {
         "name": "test",

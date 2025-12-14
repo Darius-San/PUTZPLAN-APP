@@ -8,7 +8,7 @@ import { MemberRatings } from './components/ratings/MemberRatings';
 import PeriodSettings from './components/period/PeriodSettings';
 import { AbsenceManagement } from './components/absences/AbsenceManagement';
 import { TaskTablePage } from './components/taskTable/TaskTablePage';
-import { SettingsPage } from './components/settings/SettingsPage';
+import SettingsPage from './components/settings/SettingsPage';
 import { StateRestoreModal } from './components/stateRestore/StateRestoreModal';
 import { StateRestorePage } from './components/stateRestore/StateRestorePage';
 import { AnalyticsPage } from './components/analytics/AnalyticsPage';

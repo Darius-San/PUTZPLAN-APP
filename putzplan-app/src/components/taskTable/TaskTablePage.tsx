@@ -4,7 +4,9 @@ import { usePutzplanStore } from '../../hooks/usePutzplanStore';
 import { dataManager } from '../../services/dataManager';
 import { useSettings } from '../../services/settingsManager';
 import { Task, User } from '../../types';
+import { formatShortLabel } from '../period/periodUtils';
 import { TaskExecutionModal, ConfirmTaskModal } from './index';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { isUserCurrentlyAbsent } from '../../utils/helpers';
 import { AlarmButton } from '../alarm/AlarmButton';
 import { TaskSelectionModal } from '../alarm/TaskSelectionModal';
@@ -24,10 +26,18 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
   const [confirmTask, setConfirmTask] = useState<Task | null>(null);
   const [forceUpdateTrigger, setForceUpdateTrigger] = useState(0);
   const [isAlarmModalOpen, setIsAlarmModalOpen] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; title?: string; description?: string; onConfirm?: () => void }>({ isOpen: false });
+  
+  // Confirm dialog component is imported lazily to avoid circular deps
+  // We'll render the shared ConfirmDialog below when needed.
   
   // Check if we're viewing a historical period
   const displayPeriodId = getDisplayPeriod();
   const isViewingHistoricalPeriod = displayPeriodId !== null;
+
+  // Determine whether this WG has any defined periods (active or historical)
+  const canonicalPeriods = dataManager.getHistoricalPeriods ? dataManager.getHistoricalPeriods() : [];
+  const hasAnyPeriods = Array.isArray(canonicalPeriods) && canonicalPeriods.length > 0;
 
   // Debug: Log task points when component renders
   React.useEffect(() => {
@@ -47,25 +57,18 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
         setForceUpdateTrigger(globalForceUpdate);
       }
     };
-    
+
     const interval = setInterval(checkForUpdates, 100);
-    
-    // Also listen to dataManager state changes directly
-    const unsubscribe = dataManager.subscribe((newState) => {
-      console.debug && console.debug('🔄 [TaskTable] DataManager state changed, checking for task updates...');
-      const currentTasksHash = JSON.stringify(Object.values(state.tasks).map((t: any) => ({ id: t.id, points: t.pointsPerExecution })));
-      const newTasksHash = JSON.stringify(Object.values(newState.tasks).map((t: any) => ({ id: t.id, points: t.pointsPerExecution })));
-      const currentExecHash = JSON.stringify(Object.values(state.executions || {}).map((e: any) => ({ id: e.id, taskId: e.taskId, points: e.pointsAwarded })));
-      const newExecHash = JSON.stringify(Object.values(newState.executions || {}).map((e: any) => ({ id: e.id, taskId: e.taskId, points: e.pointsAwarded })));
-      if (currentTasksHash !== newTasksHash) {
-        console.debug && console.debug('🔄 [TaskTable] Task points changed, forcing re-render...');
-        setForceUpdateTrigger(Date.now());
-      } else if (currentExecHash !== newExecHash) {
-        console.debug && console.debug('🔄 [TaskTable] Executions changed, forcing re-render...');
-        setForceUpdateTrigger(Date.now());
-      }
+
+    // Simplified subscription: whenever DataManager notifies, trigger a local
+    // re-render. We avoid JSON-hash comparisons here because the store's
+    // subscription provided via `usePutzplanStore` already updates `state` and
+    // causes renders; this listener is just a resilient fallback for edge cases.
+    const unsubscribe = dataManager.subscribe(() => {
+      console.debug && console.debug('🔄 [TaskTable] DataManager state changed, forcing re-render');
+      setForceUpdateTrigger(Date.now());
     });
-    
+
     return () => {
       clearInterval(interval);
       unsubscribe();
@@ -83,16 +86,28 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
     }
   }, [state.tasks, currentWG?.id]);
 
+  // For historical period viewing, prefer tasks/executions/userTargets from the
+  // period's savedState snapshot so the TaskTable shows exactly what was archived.
+  const rawPeriod = isViewingHistoricalPeriod ? dataManager.getDisplayPeriodInfo(displayPeriodId as string) : null;
+  const periodSavedState = rawPeriod && (rawPeriod as any).savedState ? (rawPeriod as any).savedState : null;
+
   const members: User[] = currentWG.memberIds.map((id:string)=> state.users[id]).filter(Boolean);
-  const tasks: Task[] = (Object.values(state.tasks) as Task[]).filter(t=> t.wgId === currentWG.id && t.isActive);
 
-  // Dummy fallback if no tasks
-  const rows = tasks.length ? tasks : [];
+  // Use savedState tasks when viewing a historical period; otherwise use live tasks
+  const liveTasks: Task[] = (Object.values(state.tasks) as Task[]).filter(t=> t.wgId === currentWG.id && t.isActive);
+  const rows: Task[] = periodSavedState && Array.isArray(periodSavedState.tasks) && periodSavedState.tasks.length > 0
+    ? (periodSavedState.tasks as Task[])
+    : liveTasks;
 
+  // displayPeriodExecutions already returns savedState.executions when viewing
+  // a historical period (see DataManager.getDisplayPeriodExecutions()). Use that
+  // collection and filter to the WG's tasks (or allow saved snapshot execs even
+  // if their tasks are not present live).
   const executions = useMemo(()=> Object.values(displayPeriodExecutions).filter((e: any) => {
-    const task = state.tasks[e.taskId];
-    return task && task.wgId === currentWG.id;
-  }), [displayPeriodExecutions, state.tasks, currentWG.id]);
+    const taskLive = state.tasks[e.taskId];
+    const taskDisplayed = rows.find(r => r.id === e.taskId) || taskLive;
+    return taskDisplayed && taskDisplayed.wgId === currentWG.id;
+  }), [displayPeriodExecutions, state.tasks, currentWG.id, rows]);
 
   const executionCountMap = useMemo(()=> {
     const map: Record<string, Record<string, number>> = {};
@@ -137,13 +152,24 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
   }, [rows, members, state.tasks, forceUpdateTrigger]);
 
   const percent = (uid:string) => {
-    const currentPeriod = dataManager.ensureCurrentPeriod();
     const user = members.find(m => m.id === uid);
     if (!user) return 0;
-    
-    const adjustedTarget = dataManager.getAdjustedMonthlyTarget(user, currentPeriod);
+
+    // If viewing a historical period and a savedState contains per-user target
+    // overrides, prefer those values for percentage calculation.
+    let adjustedTarget: number | undefined = undefined;
+    try {
+      if (periodSavedState && periodSavedState.userTargets && typeof periodSavedState.userTargets[uid] === 'number') {
+        adjustedTarget = periodSavedState.userTargets[uid];
+      }
+    } catch (_) {}
+
+    if (typeof adjustedTarget === 'undefined') {
+      const currentPeriod = dataManager.ensureCurrentPeriod();
+      adjustedTarget = dataManager.getAdjustedMonthlyTarget(user, currentPeriod);
+    }
     const earnedPoints = totals[uid] || 0;
-    
+
     if (adjustedTarget <= 0) return 100; // If no points required, 100% fulfilled
     return Math.round((earnedPoints / adjustedTarget) * 100);
   };
@@ -155,8 +181,8 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
     const names = ['Küche putzen','Müll rausbringen','Staubsaugen','Einkauf erledigen','Bad reinigen','Fenster wischen','Boden fegen','Pflanzen gießen','Wäsche waschen','Tisch abwischen'];
     for (let i=0;i<n;i++) {
       const title = names[i % names.length] + (n>names.length?` #${i+1}`:'');
-      // Skip if task with same title already exists
-      if (tasks.find(t=> t.title === title)) continue;
+      // Skip if task with same title already exists in the rows displayed
+      if (rows.find(t=> t.title === title)) continue;
       const emojiPool = ['🧽','🗑️','🧹','🛒','🛁','🪟','🧺','🌱','🍽️','🧴'];
       const emoji = emojiPool[i % emojiPool.length];
       // Random member assignment for demo; stored in assignedUserId
@@ -190,7 +216,7 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
         checklist: (i%2===0)? ['Vorbereitung','Ausführen','Kontrolle'] : undefined
       } as any);
     }
-  }, [tasks, members]);
+  }, [rows, members]);
 
   // Responsive width calculation: first column clamped, remaining width split among member columns
   const memberCount = members.length || 1;
@@ -203,12 +229,25 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
   const resetTasksToCustomList = useCallback(() => {
     if (!dataManager.isDebugMode()) return;
     if (!currentWG) return;
-    if (!window.confirm('Alle aktuellen Tasks dieser WG löschen und durch die neue Liste ersetzen?')) return;
 
-    // Delete existing tasks for this WG
-    (Object.values(state.tasks) as Task[])
-      .filter(t => t.wgId === currentWG.id)
-      .forEach(t => dataManager.deleteTask(t.id));
+    setConfirmState({
+      isOpen: true,
+      title: 'Tasks ersetzen?',
+      description: 'Alle aktuellen Tasks dieser WG löschen und durch die neue Liste ersetzen?',
+      onConfirm: () => {
+        // Delete existing tasks for this WG (force global delete even if a display period is active)
+        const prevDisplay = dataManager.getDisplayPeriod();
+        try {
+          if (prevDisplay) dataManager.setDisplayPeriod(null);
+          (Object.values(state.tasks) as Task[])
+            .filter(t => t.wgId === currentWG.id)
+            .forEach(t => dataManager.deleteTask(t.id));
+        } finally {
+          if (prevDisplay) dataManager.setDisplayPeriod(prevDisplay);
+        }
+        setConfirmState({ isOpen: false });
+      }
+    });
 
     // New custom tasks (from the photo), no checklists
     const titles: Array<{ title: string; emoji: string; minDays?: number; freq?: number }> = [
@@ -300,6 +339,40 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
               </div>
             </div>
           </Card>
+        )}
+        {!isViewingHistoricalPeriod && (
+          // If the WG has no periods configured, show an explicit empty state
+          // instead of attempting to render a current period.
+          (!hasAnyPeriods ? (
+            <Card className="mb-4 p-4 bg-yellow-50 border-yellow-200">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📭</span>
+                <div>
+                  <h3 className="font-semibold text-yellow-800">Keine Periode ausgewählt</h3>
+                  <p className="text-sm text-yellow-600">Für diese WG sind keine Zeiträume definiert. Erstelle einen neuen Zeitraum, um Fortschritte zu tracken.</p>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="mb-4 p-4 bg-green-50 border-green-200">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🕒</span>
+                <div>
+                  <h3 className="font-semibold text-green-800">Aktueller Zeitraum</h3>
+                  <p className="text-sm text-green-600">
+                    {(() => {
+                      try {
+                        const cur = dataManager.ensureCurrentPeriod();
+                        return formatShortLabel({ startDate: (cur.start as any).toISOString(), endDate: (cur.end as any).toISOString() } as any);
+                      } catch (e) {
+                        return '—';
+                      }
+                    })()}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))
         )}
         
         <Card className="p-0 overflow-hidden" data-testid="task-table-card">
@@ -590,8 +663,19 @@ export const TaskTablePage: React.FC<TaskTablePageProps> = ({ onBack }) => {
         onSelectTask={handleTaskSelection}
         tasks={rows}
       />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        description={confirmState.description}
+        primaryLabel="Ja"
+        secondaryLabel="Nein"
+        onPrimary={() => { confirmState.onConfirm && confirmState.onConfirm(); }}
+        onSecondary={() => setConfirmState({ isOpen: false })}
+        onClose={() => setConfirmState({ isOpen: false })}
+      />
     </div>
   );
 };
 
 export default TaskTablePage;
+

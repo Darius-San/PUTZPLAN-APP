@@ -69,27 +69,7 @@
             "groupId": "",
             "enabled": true
           }
-        },
-        "periods": [
-          {
-            "id": "2025-12-31_2026-01-31",
-            "start": "2025-12-31T23:00:00.000Z",
-            "end": "2026-01-31T23:00:00.000Z",
-            "days": 31,
-            "label": "01.01 – 31.01",
-            "createdAt": "2025-12-10T16:17:07.809Z"
-          }
-        ],
-        "historicalPeriods": [
-          {
-            "id": "2025-12-31_2026-01-31",
-            "start": "2025-12-31T23:00:00.000Z",
-            "end": "2026-01-31T23:00:00.000Z",
-            "days": 31,
-            "label": "01.01 – 31.01",
-            "createdAt": "2025-12-10T16:17:07.809Z"
-          }
-        ]
+        }
       },
       "mgsglmqzyd26uaqqvp": {
         "name": "test",
@@ -108,9 +88,7 @@
           "mgsglmr06kodqgrv58f",
           "mgsglmr0rern5hnp15p"
         ],
-        "inviteCode": "7XUN18ZU",
-        "periods": [],
-        "historicalPeriods": []
+        "inviteCode": "7XUN18ZU"
       }
     },
     "users": {
@@ -2210,6 +2188,6 @@
     "end": "2026-01-31T23:00:00.000Z",
     "days": 31,
     "label": "01.01 – 31.01",
-    "createdAt": "2025-12-10T16:17:07.809Z"
+    "createdAt": "2025-12-10T15:39:07.062Z"
   }
 }

@@ -30,6 +30,13 @@ const PeriodCompare: React.FC = () => {
   console.log('🔎 [PeriodCompare] OnlyInStore:', onlyA.map(p => p.id));
   console.log('🔎 [PeriodCompare] OnlyInDataManager:', onlyB.map(p => p.id));
 
+  // Expose for automated inspection
+  try {
+    (window as any).__PERIOD_COMPARE = { store: normA, dataManager: normB, onlyInStore: onlyA, onlyInDataManager: onlyB };
+  } catch (e) {
+    // ignore if window not available
+  }
+
   return (
     <div style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 9999, width: 720, maxHeight: '60vh', overflow: 'auto', boxShadow: '0 6px 30px rgba(2,6,23,0.2)' }}>
       <div style={{ background: 'white', borderRadius: 8, padding: 12, border: '1px solid #e6edf3' }}>

@@ -36,3 +36,44 @@ export function formatShortLabel(period: any) {
     return period.name || '';
   }
 }
+
+/**
+ * Remove duplicate periods by their start/end date. If multiple periods share the same
+ * date range, prefer periods marked as active or with a live marker (`isActive` or `__LIVE_PERIOD__`).
+ */
+export function dedupeByDate(periods: any[]) {
+  if (!Array.isArray(periods)) return [];
+  const map = new Map<string, any>();
+
+  const normalize = (v: any) => {
+    if (!v && v !== 0) return '';
+    try {
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) return d.toISOString();
+    } catch (_) { }
+    return String(v);
+  };
+
+  for (const p of periods) {
+    const sRaw = p.startDate || p.start || p.start_at || '';
+    const eRaw = p.endDate || p.end || p.end_at || '';
+    const s = normalize(sRaw);
+    const e = normalize(eRaw);
+    const key = `${s}::${e}`;
+
+    if (!map.has(key)) {
+      map.set(key, p);
+      continue;
+    }
+
+    // Prefer active/live periods
+    const existing = map.get(key);
+    const existingScore = (existing && (existing.isActive || existing.__LIVE_PERIOD__)) ? 1 : 0;
+    const candidateScore = (p && (p.isActive || p.__LIVE_PERIOD__)) ? 1 : 0;
+    if (candidateScore > existingScore) {
+      map.set(key, p);
+    }
+  }
+
+  return Array.from(map.values());
+}

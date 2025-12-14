@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card } from '../ui';
 import { useSettings } from '../../services/settingsManager';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -41,11 +42,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   const handleReset = () => {
-    if (confirm('🔄 Alle Einstellungen auf Standard zurücksetzen?')) {
-      reset();
-      onClose();
-    }
+    setConfirmState({ isOpen: true, title: 'Alle Einstellungen zurücksetzen?', description: '🔄 Alle Einstellungen auf Standard zurücksetzen?', onConfirm: () => { reset(); onClose(); setConfirmState({ isOpen: false }); } });
   };
+
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; title?: string; description?: string; onConfirm?: () => void; primaryLabel?: string; secondaryLabel?: string }>({ isOpen: false });
 
   const spacingOptions = [
     { value: 1, label: 'Sehr eng', preview: 'px-1' },
@@ -179,6 +179,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </Button>
             </div>
           </div>
+          {/* Confirm Dialog for destructive actions */}
+          <ConfirmDialog
+            isOpen={confirmState.isOpen}
+            title={confirmState.title}
+            description={confirmState.description}
+            primaryLabel={confirmState.primaryLabel || 'Ja'}
+            secondaryLabel={confirmState.secondaryLabel || 'Abbrechen'}
+            onPrimary={() => {
+              confirmState.onConfirm && confirmState.onConfirm();
+              setConfirmState({ isOpen: false });
+            }}
+            onSecondary={() => setConfirmState({ isOpen: false })}
+            onClose={() => setConfirmState({ isOpen: false })}
+          />
         </div>
       </Card>
     </div>

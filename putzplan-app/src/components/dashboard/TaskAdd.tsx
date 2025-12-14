@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Card, Button, Input } from '../ui';
 import { usePutzplanStore } from '../../hooks/usePutzplanStore';
+import { dataManager } from '../../services/dataManager';
 import { TaskCategory } from '../../types';
+import { useToast } from '../ui/ToastContext';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Props {
   onBack: () => void;
@@ -21,6 +24,8 @@ export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
   const [checklist, setChecklist] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
   // Curated emoji list for quick selection
   const emojiOptions = ['🧽','🧹','🛁','🗑️','🍽️','🧼','🪴','📝','🪟','🔥','👕','🧴','🥗'];
@@ -48,6 +53,8 @@ export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
     setChecklist([]);
     setCheckItem('');
   };
+
+  const toast = useToast();
 
   const startEdit = (task: any) => {
     setEditingTaskId(task.id);
@@ -150,6 +157,22 @@ export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
           </div>
         </div>
       </header>
+      {/* Delete modal */}
+      <ConfirmDialog
+        isOpen={deleteModalOpen}
+        title={deleteTarget ? `Lösche "${deleteTarget.title}"` : 'Löschen'}
+        description={deleteTarget ? 'Der Task wird nur im aktuell angezeigten Zeitraum gelöscht. Ein globales Löschen ist aus Sicherheitsgründen deaktiviert.' : undefined}
+        secondaryLabel="Löschen"
+        onClose={() => { setDeleteModalOpen(false); setDeleteTarget(null); }}
+        onSecondary={() => {
+          if (!deleteTarget) return;
+          // Perform period-scoped delete only
+          deleteTask(deleteTarget.id);
+          toast.info('Task im Zeitraum gelöscht (kein Rückgängig verfügbar)');
+          setDeleteModalOpen(false);
+          setDeleteTarget(null);
+        }}
+      />
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         <div className="grid gap-8 md:grid-cols-2">
           <Card className="p-5 space-y-5" data-testid="task-form-card">
@@ -228,7 +251,11 @@ export const TaskAdd: React.FC<Props> = ({ onBack, onSaved }) => {
                     </div>
                     <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition">
                       <Button size="sm" variant={editingTaskId===t.id? 'primary':'outline'} onClick={()=> startEdit(t)} data-testid={`edit-task-${t.id}`}>{editingTaskId===t.id? 'Aktiv' : 'Edit'}</Button>
-                      <Button size="sm" variant="outline" data-testid={`delete-task-${t.id}`} onClick={()=> { if (confirm('Task wirklich löschen?')) { const wasEditing = editingTaskId===t.id; deleteTask(t.id); if (wasEditing) resetForm(); } }}>
+                      <Button size="sm" variant="outline" data-testid={`delete-task-${t.id}`} onClick={()=> {
+                        // Open modal to choose delete scope
+                        setDeleteTarget(t);
+                        setDeleteModalOpen(true);
+                      }}>
                         Del
                       </Button>
                     </div>

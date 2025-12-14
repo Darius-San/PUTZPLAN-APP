@@ -1,0 +1,7 @@
+Selected period: 2025-12-31_2026-01-31 has savedState? false
+Created synthetic savedState: tasks=18, executions=38
+Will delete task from period savedState: t1 Küche putzen
+Before: tasks=18, execs=38
+After:  tasks=17, execs=35
+Wrote test output to D:\Daten\3-PROJECTS\5-PUTZPLAN\putzplan-app\data\putzplan-data.test-output.json
+NOTE: original persisted file not modified. Inspect the test output file to review changes.

@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePutzplanStore } from '../../hooks/usePutzplanStore';
 import { Card, Button } from '../ui';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Props { onBack: () => void; onSelectUser: (userId: string) => void; }
 
 export const RatingsOverview: React.FC<Props> = ({ onBack, onSelectUser }) => {
   const { currentWG, state, isUserRatingsComplete, recalculateTaskPoints, recalculateWGPointDistribution, debugMode, upsertTaskRatingForUser, resetMembersTargetsToWgTarget } = usePutzplanStore() as any;
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; title?: string; description?: string; onConfirm?: () => void }>({ isOpen: false });
   if (!currentWG) return null;
   const members = Object.values(state.users).filter((u: any) => currentWG.memberIds?.includes(u.id));
   const tasksInWG = Object.values(state.tasks).filter((t: any) => t.wgId === currentWG.id);
@@ -104,20 +106,38 @@ export const RatingsOverview: React.FC<Props> = ({ onBack, onSelectUser }) => {
               Punkte aktualisieren
             </Button>
             {debugMode && (
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => {
-                  if (!currentWG) return;
-                  if (confirm('⚠️ Alle manuellen User-Anpassungen zurücksetzen?\n\nDies setzt alle Mitglieder-Ziele auf das WG-Standard-Ziel zurück.')) {
-                    const result = resetMembersTargetsToWgTarget(currentWG.id);
-                    alert(`User-Ziele wurden auf ${currentWG.settings.monthlyPointsTarget}P gesetzt.\nAktualisiert: ${result.updated}`);
-                  }
-                }}
-                data-testid="reset-user-targets-btn"
-              >
-                🔄 User-Ziele zurücksetzen
-              </Button>
+              <>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    if (!currentWG) return;
+                    setConfirmState({
+                      isOpen: true,
+                      title: 'User-Ziele zurücksetzen?',
+                      description: 'Alle manuellen User-Anpassungen zurücksetzen? Dies setzt alle Mitglieder-Ziele auf das WG-Standard-Ziel zurück.',
+                      onConfirm: () => {
+                        const result = resetMembersTargetsToWgTarget(currentWG.id);
+                        alert(`User-Ziele wurden auf ${currentWG.settings.monthlyPointsTarget}P gesetzt.\nAktualisiert: ${result.updated}`);
+                        setConfirmState({ isOpen: false });
+                      }
+                    });
+                  }}
+                  data-testid="reset-user-targets-btn"
+                >
+                  🔄 User-Ziele zurücksetzen
+                </Button>
+                <ConfirmDialog
+                  isOpen={confirmState.isOpen}
+                  title={confirmState.title}
+                  description={confirmState.description}
+                  primaryLabel="Ja"
+                  secondaryLabel="Nein"
+                  onPrimary={() => { confirmState.onConfirm && confirmState.onConfirm(); }}
+                  onSecondary={() => setConfirmState({ isOpen: false })}
+                  onClose={() => setConfirmState({ isOpen: false })}
+                />
+              </>
             )}
             <Button size="sm" variant="ghost" onClick={onBack}>Zurück</Button>
           </div>

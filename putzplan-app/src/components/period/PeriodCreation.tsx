@@ -135,7 +135,8 @@ export const PeriodCreation: React.FC<PeriodCreationProps> = ({
         <div className="flex justify-end pt-4 border-t border-gray-200">
           <Button
             onClick={handleSubmit}
-            disabled={!isValidDateRange}
+            disabled={!isValidDateRange || isOverlapping}
+            title={isOverlapping ? 'Dieser Zeitraum überschneidet sich mit bestehenden Zeiträumen' : undefined}
             className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {resetData ? '🔄 Zeitraum erstellen & Daten zurücksetzen' : '✨ Zeitraum erstellen'}

@@ -7,6 +7,7 @@ import PeriodInfo from './PeriodInfo';
 import { normalizePeriods, formatShortLabel } from './periodUtils';
 import { useToast } from '../ui/ToastContext';
 import { Button } from '../ui/Button';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface PeriodSettingsProps {
   onBack: () => void;
@@ -51,6 +52,8 @@ const PeriodSettings: React.FC<PeriodSettingsProps> = ({ onBack }) => {
 
   const toast = useToast();
 
+  const [confirmState, setConfirmState] = React.useState({ isOpen: false, title: '', description: '', onConfirm: null as (() => void) | null });
+
   const currentPeriod = state?.currentPeriod;
   const currentMembers = currentWG?.members?.filter((m: any) => m.isActive) || [];
   const tasks = Object.values(state?.tasks || {});
@@ -76,17 +79,38 @@ const PeriodSettings: React.FC<PeriodSettingsProps> = ({ onBack }) => {
 
   const handleCreatePeriod = (startDate: string, endDate: string, resetData: boolean) => {
     try {
-      const success = setCustomPeriod(new Date(startDate), new Date(endDate), resetData);
-      if (success) {
+      // capture previous currentPeriod id to allow copying state
+      const previousId = currentPeriod?.id || null;
+      const result = setCustomPeriod(new Date(startDate), new Date(endDate), resetData);
+      if (result) {
         toast.success(resetData ? '✅ Neuer Zeitraum erstellt und alle Daten zurückgesetzt!' : '✅ Neuer Zeitraum erfolgreich erstellt!');
+        // Ask the user whether to copy tasks/points from previous period into the new one
+        if (previousId) {
+          setConfirmState({
+            isOpen: true,
+            title: 'Vorherigen Zeitraum kopieren?',
+            description: 'Möchtest du die Aufgaben und Punktestände aus dem vorherigen Zeitraum in den neuen Zeitraum kopieren?',
+            onConfirm: () => {
+              try {
+                const ok = dataManager.copyStateBetweenPeriods(previousId, result.id);
+                if (ok) toast.success('🔁 Aufgaben und Punkte in den neuen Zeitraum kopiert');
+                else toast.error('❌ Konnte Aufgaben/Punkte nicht kopieren');
+              } catch (err) {
+                console.warn('Copy state failed', err);
+              }
+              setConfirmState(s => ({ ...s, isOpen: false }));
+            }
+          });
+        }
+
         setActiveTab('select');
         setPeriodReloadKey(k => k + 1); // Trigger reload
-      } else {
-        toast.error('❌ Fehler beim Erstellen des Zeitraums!');
       }
     } catch (error) {
       console.error('Error creating period:', error);
-      toast.error('❌ Fehler beim Erstellen des Zeitraums!');
+      // If the error has a message (e.g. overlap), show it to the user
+      const msg = (error && (error as any).message) ? (error as any).message : '❌ Fehler beim Erstellen des Zeitraums!';
+      toast.error(msg);
     }
   };
 
@@ -126,8 +150,43 @@ const PeriodSettings: React.FC<PeriodSettingsProps> = ({ onBack }) => {
   console.log('🔍 [PeriodSettings] Period options:', periodOptions.map(p => ({ id: p.id, name: p.name, isActive: p.isActive })));
 
   const handlePeriodSelect = (periodId: string | null) => {
-    if (periodId) {
-      setDisplayPeriod(periodId);
+    try {
+      const previous = typeof getDisplayPeriod === 'function' ? getDisplayPeriod() : null;
+      if (previous) {
+        // Save current WG-scoped edits to the previous period before switching
+        try {
+          dataManager.saveStateForPeriod(previous);
+          console.log('Saved state for previous period', previous);
+        } catch (e) {
+          console.warn('Failed to save previous period state', e);
+        }
+      }
+      if (periodId) {
+        setDisplayPeriod(periodId);
+        // If a saved snapshot exists for that period, ask the user whether to restore it.
+          try {
+          const raw = rawPeriods.find(p => p.id === periodId) as any;
+          const hasSaved = !!(raw && raw.savedState);
+          if (hasSaved) {
+            setConfirmState({
+              isOpen: true,
+              title: 'Zeitraum wiederherstellen? ',
+              description: 'Für diesen Zeitraum existiert ein gespeicherter Stand. Möchtest du ihn wiederherstellen?',
+              onConfirm: () => {
+                const loaded = dataManager.loadStateForPeriod(periodId);
+                if (loaded) toast.success('🔁 Zeitraum-Daten wiederhergestellt');
+                setConfirmState(s => ({ ...s, isOpen: false }));
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to check/load saved state for period', e);
+        }
+      } else {
+        setDisplayPeriod(null);
+      }
+    } catch (err) {
+      console.error('Error switching period:', err);
     }
   };
 
@@ -150,6 +209,22 @@ const PeriodSettings: React.FC<PeriodSettingsProps> = ({ onBack }) => {
     } catch (error) {
       console.error('Error deleting period:', error);
       toast.error('❌ Fehler beim Löschen des Zeitraums!');
+    }
+  };
+
+  const handlePurgeDuplicates = () => {
+    try {
+      // @ts-ignore
+      const res = dataManager.purgeDuplicatePeriodsForCurrentWG();
+      if (res && res.removed > 0) {
+        toast.success(`✅ ${res.removed} doppelte(n) Zeitraum/Zeiträume entfernt`);
+      } else {
+        toast.info('Keine Duplikate gefunden');
+      }
+      setPeriodReloadKey(k => k + 1);
+    } catch (err) {
+      console.error('Failed to purge duplicates', err);
+      toast.error('Fehler beim Bereinigen der Duplikate');
     }
   };
 
@@ -179,13 +254,37 @@ const PeriodSettings: React.FC<PeriodSettingsProps> = ({ onBack }) => {
     endDate: currentPeriod.end
   } : null;
 
+  // Auto-save WG-scoped changes (tasks/executions) to the selected display period
+  React.useEffect(() => {
+    let timer: any = null;
+    const displayId = typeof getDisplayPeriod === 'function' ? getDisplayPeriod() : null;
+    if (!displayId) return; // nothing to save
+
+    // Debounce saves to avoid excessive writes
+    timer = setTimeout(() => {
+      try {
+        dataManager.saveStateForPeriod(displayId);
+        console.log('Auto-saved WG state for period', displayId);
+      } catch (e) {
+        console.warn('Auto-save failed for period', displayId, e);
+      }
+    }, 750);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  // Trigger when tasks or executions objects change
+  }, [state?.tasks, state?.executions]);
+
   return (
+    <>
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header mit prominentem Zurück-Button */}
         <div className="flex items-center justify-between bg-white rounded-lg p-4 shadow-sm border-2 border-blue-200">
           <Button
             onClick={onBack}
+            aria-label="Zurück"
             variant="primary"
             size="lg"
             className="font-bold px-8 py-4 rounded-lg shadow-lg border-2 border-orange-500 bg-orange-400 text-white hover:bg-orange-500 hover:border-orange-600"
@@ -238,6 +337,15 @@ const PeriodSettings: React.FC<PeriodSettingsProps> = ({ onBack }) => {
 
         {/* Tab Content */}
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <Button
+              onClick={handlePurgeDuplicates}
+              variant="outline"
+              className="text-xs bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 mr-2"
+            >
+              🧹 Duplikate bereinigen
+            </Button>
+          </div>
           {activeTab === 'create' && (
             <PeriodCreation 
               onCreatePeriod={handleCreatePeriod}
@@ -265,7 +373,21 @@ const PeriodSettings: React.FC<PeriodSettingsProps> = ({ onBack }) => {
         </div>
       </div>
     </div>
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        description={confirmState.description}
+        primaryLabel="Ja"
+        secondaryLabel="Nein"
+        onPrimary={() => { confirmState.onConfirm && confirmState.onConfirm(); }}
+        onSecondary={() => setConfirmState(s => ({ ...s, isOpen: false }))}
+        onClose={() => setConfirmState(s => ({ ...s, isOpen: false }))}
+      />
+    </>
   );
 };
+
+// Global confirm dialog used for various prompts in this component
+const ConfirmWrapper: React.FC<any> = () => null;
 
 export default PeriodSettings;

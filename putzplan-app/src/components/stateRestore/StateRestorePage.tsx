@@ -3,6 +3,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { eventSourcingManager, type StateSnapshot, type ActionEvent, type RestorePreview } from '../../services/eventSourcingManager';
 import { usePutzplanStore } from '../../hooks/usePutzplanStore';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface StateRestorePageProps {
   onBack: () => void;
@@ -19,6 +20,7 @@ export const StateRestorePage: React.FC<StateRestorePageProps> = ({ onBack }) =>
   const [showConfirmRestore, setShowConfirmRestore] = useState(false);
   const [pendingRestore, setPendingRestore] = useState<StateSnapshot | null>(null);
   const [confirmText, setConfirmText] = useState('');
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; title?: string; description?: string; onConfirm?: () => void }>({ isOpen: false });
   
   const { debugMode } = usePutzplanStore();
 
@@ -67,24 +69,29 @@ export const StateRestorePage: React.FC<StateRestorePageProps> = ({ onBack }) =>
   };
 
   const handleClearTestData = async () => {
-    const confirmed = confirm('⚠️ Wirklich alle Daten löschen?\n\nDies kann nicht rückgängig gemacht werden!');
-    if (!confirmed) return;
-
-    try {
-      setLoading(true);
-      const response = await fetch('/api/clear-data', { method: 'POST' });
-      if (response.ok) {
-        alert('✅ Alle Daten gelöscht! Lade neu...');
-        await loadData();
-      } else {
-        alert('❌ Fehler beim Löschen der Daten');
+    setConfirmState({
+      isOpen: true,
+      title: 'Wirklich alle Daten löschen?',
+      description: 'Dies kann nicht rückgängig gemacht werden!',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const response = await fetch('/api/clear-data', { method: 'POST' });
+          if (response.ok) {
+            alert('✅ Alle Daten gelöscht! Lade neu...');
+            await loadData();
+          } else {
+            alert('❌ Fehler beim Löschen der Daten');
+          }
+        } catch (error) {
+          console.error('Error clearing data:', error);
+          alert('❌ Fehler beim Löschen der Daten: ' + error);
+        } finally {
+          setLoading(false);
+          setConfirmState({ isOpen: false });
+        }
       }
-    } catch (error) {
-      console.error('Error clearing data:', error);
-      alert('❌ Fehler beim Löschen der Daten: ' + error);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleSnapshotSelect = async (snapshot: StateSnapshot) => {
@@ -112,32 +119,29 @@ export const StateRestorePage: React.FC<StateRestorePageProps> = ({ onBack }) =>
   };
 
   const handleDeleteSnapshot = async (snapshot: StateSnapshot) => {
-    const confirmed = confirm(
-      `🗑️ Snapshot wirklich löschen?\n\n` +
-      `📸 ${formatTimestamp(snapshot.timestamp)}\n` +
-      `📝 ${snapshot.triggerEvent}\n` +
-      `💾 ${(snapshot.metadata.size / 1024).toFixed(1)} KB\n\n` +
-      `⚠️ Diese Aktion kann nicht rückgängig gemacht werden!`
-    );
-    
-    if (!confirmed) return;
-
-    try {
-      setLoading(true);
-      const success = eventSourcingManager.deleteSnapshot(snapshot.id);
-      
-      if (success) {
-        alert('✅ Snapshot erfolgreich gelöscht!');
-        await loadData(); // UI aktualisieren
-      } else {
-        alert('❌ Fehler: Snapshot nicht gefunden');
+    setConfirmState({
+      isOpen: true,
+      title: 'Snapshot wirklich löschen?',
+      description: `Snapshot vom ${new Date(snapshot.timestamp).toLocaleString('de-DE')} löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const success = eventSourcingManager.deleteSnapshot(snapshot.id);
+          if (success) {
+            alert('✅ Snapshot erfolgreich gelöscht!');
+            await loadData(); // UI aktualisieren
+          } else {
+            alert('❌ Fehler: Snapshot nicht gefunden');
+          }
+        } catch (error) {
+          console.error('[StateRestorePage] Failed to delete snapshot:', error);
+          alert('❌ Fehler beim Löschen des Snapshots: ' + error);
+        } finally {
+          setLoading(false);
+          setConfirmState({ isOpen: false });
+        }
       }
-    } catch (error) {
-      console.error('[StateRestorePage] Failed to delete snapshot:', error);
-      alert('❌ Fehler beim Löschen des Snapshots: ' + error);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const executeRestore = async () => {
@@ -607,6 +611,16 @@ export const StateRestorePage: React.FC<StateRestorePageProps> = ({ onBack }) =>
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        description={confirmState.description}
+        primaryLabel="Ja"
+        secondaryLabel="Nein"
+        onPrimary={() => { confirmState.onConfirm && confirmState.onConfirm(); }}
+        onSecondary={() => setConfirmState({ isOpen: false })}
+        onClose={() => setConfirmState({ isOpen: false })}
+      />
 
       {/* Confirmation Modal */}
       {showConfirmRestore && pendingRestore && (

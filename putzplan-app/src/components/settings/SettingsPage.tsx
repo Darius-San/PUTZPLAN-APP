@@ -4,12 +4,13 @@ import { useSettings } from '../../services/settingsManager';
 import { dataManager } from '../../services/dataManager';
 import { usePutzplanStore } from '../../hooks/usePutzplanStore';
 import { whatsappService } from '../../services/whatsappService';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface SettingsPageProps {
   onBack: () => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const { settings, updateTaskTableSettings, updateSettings, reset } = useSettings();
   const { currentWG } = usePutzplanStore() as any;
   const [tempSettings, setTempSettings] = useState(settings);
@@ -113,12 +114,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   };
 
   const handleReset = () => {
-    if (confirm('🔄 Alle Einstellungen auf Standard zurücksetzen?')) {
-      reset();
-      setTempSettings(settings);
-      setHasChanges(false);
-      alert('🔄 Einstellungen zurückgesetzt!');
-    }
+    setConfirmOpen(true);
+  };
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const doReset = () => {
+    reset();
+    setTempSettings(settings);
+    setHasChanges(false);
+    alert('🔄 Einstellungen zurückgesetzt!');
+    setConfirmOpen(false);
   };
 
   const spacingOptions = [
@@ -139,6 +145,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   ];
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b shadow-sm">
@@ -530,5 +537,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
           </div>
       </main>
     </div>
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title="Alle Einstellungen zurücksetzen?"
+        description="🔄 Alle Einstellungen auf Standard zurücksetzen?"
+        primaryLabel="Ja"
+        secondaryLabel="Nein"
+        onPrimary={() => doReset()}
+        onSecondary={() => setConfirmOpen(false)}
+        onClose={() => setConfirmOpen(false)}
+      />
+    </>
   );
 };
+
+// Confirm dialog for reset
+export default SettingsPage;

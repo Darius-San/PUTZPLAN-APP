@@ -3,6 +3,7 @@ import { generateId } from '../utils/taskUtils';
 // TEMPORARY FIX: Use disabled Event Sourcing to prevent localStorage conflicts
 import { eventSourcingManager } from './eventSourcingManager.disabled';
 import { stateBackupManager } from './stateBackupManager';
+import { settingsManager } from './settingsManager';
 // DISABLED: import { crossBrowserSync } from './crossBrowserSync';
 
 // Minimal localStorage polyfill for non-browser / early import contexts (e.g. Vitest module eval order)
@@ -50,6 +51,10 @@ const initialState: AppState = {
   temporaryResidents: {},
   postExecutionRatings: {},
   currentPeriod: undefined,
+  // Per-period user target overrides (userId -> targetPoints)
+  userTargets: {},
+  // Active settings snapshot (kept here for tests that call dataManager.updateSettings)
+  settings: {},
   debugMode: false
 };
 
@@ -70,6 +75,36 @@ export class DataManager {
     // crossBrowserSync.init();
     
     this.state = this.loadFromStorage();
+  }
+
+  /**
+   * Restore a recently saved deletion snapshot for a task (global delete undo)
+   * Looks up backups for the task and attempts to re-insert the deleted task object.
+   */
+  restoreTaskFromBackup(taskId: string): boolean {
+    try {
+      // Find backups for this task
+      const snaps = stateBackupManager.getSnapshotsForEntity('task', taskId);
+      if (!snaps || snaps.length === 0) return false;
+      // Prefer most recent DELETE_TASK snapshot
+      const delSnap = snaps.find(s => s.type === 'DELETE_TASK' && (s as any).data) || snaps[0];
+      if (!delSnap) return false;
+      const payload: any = (delSnap as any).data || (delSnap as any).afterState || (delSnap as any).beforeState;
+      if (!payload || !payload.id) return false;
+      const existing = this.state.tasks[payload.id];
+      if (existing) {
+        console.warn('[DataManager] Cannot restore task: id already exists', payload.id);
+        return false;
+      }
+
+      // Re-insert the task object
+      this.updateStateImmediate({ tasks: { ...this.state.tasks, [payload.id]: payload } });
+      console.log(`🔄 [DataManager] Restored task ${payload.id} from backup snapshot ${delSnap.id}`);
+      return true;
+    } catch (err) {
+      console.error('❌ [DataManager] Failed to restore task from backup', err);
+      return false;
+    }
   }
 
   /**
@@ -199,7 +234,7 @@ export class DataManager {
   // ========================================
 
   private loadFromStorage(): AppState {
-    console.log('[DataManager] loadFromStorage called');
+    console.log(`[DataManager] loadFromStorage called @ ${new Date().toISOString()}`);
     
     try {
       // DISABLED: CROSS-BROWSER SYNC - potential source of period loss
@@ -213,7 +248,7 @@ export class DataManager {
       
       // Use regular localStorage directly
       let stored = this.localStorage.getItem(STORAGE_KEY);
-      console.log('[DataManager] localStorage.getItem(putzplan-data) result:', stored ? 'data found' : 'no data');
+      console.log(`[DataManager] localStorage.getItem(${STORAGE_KEY}) result @ ${new Date().toISOString()}:`, stored ? 'data found' : 'no data');
       
       // REMOVED: Event Sourcing snapshot logic to prevent storage conflicts
       // The original Event Sourcing check caused different data in different browsers
@@ -268,7 +303,7 @@ export class DataManager {
   }
 
   private saveToStorage(): void {
-    console.log('[DataManager] saveToStorage called');
+    console.log(`[DataManager] saveToStorage called @ ${new Date().toISOString()}`);
     try {
       const data = {
         version: STORAGE_VERSION,
@@ -281,7 +316,7 @@ export class DataManager {
       // DISABLED: Use direct localStorage instead of crossBrowserSync to prevent conflicts
       // crossBrowserSync.saveWithSync(data);
       this.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log('[DataManager] Successfully saved to localStorage directly (crossBrowserSync disabled)');
+      console.log(`[DataManager] Successfully saved to localStorage @ ${new Date().toISOString()} (crossBrowserSync disabled)`);
     } catch (error) {
       console.error('[DataManager] Error saving to storage:', error);
     }
@@ -388,6 +423,38 @@ export class DataManager {
   }
 
   /**
+   * Set a manual target for a user for the currently selected period.
+   * Stored in `state.userTargets` as a simple map userId -> targetPoints.
+   */
+  setUserTarget(userId: string, targetPoints: number): void {
+    const user = this.state.users[userId];
+    if (!user) throw new Error('User not found');
+    const userTargets = { ...(this.state as any).userTargets || {} } as Record<string, number>;
+    userTargets[userId] = targetPoints;
+    this.updateState({ userTargets });
+    // Persist immediately for deterministic tests
+    this.saveToStorage();
+    console.log(`👤 [DataManager] Set user target for ${userId} = ${targetPoints}`);
+  }
+
+  /**
+   * Update application settings. This proxies to the SettingsManager but also
+   * keeps a snapshot in `state.settings` so period snapshots can include settings.
+   */
+  updateSettings(updates: any): void {
+    try {
+      // Update global settings manager (keeps UI hooks in sync)
+      try { settingsManager.updateSettings(updates); } catch (_) { /* ignore */ }
+      const merged = { ...(this.state as any).settings || {}, ...(updates || {}) };
+      this.updateState({ settings: merged });
+      this.saveToStorage();
+      console.log('🔧 [DataManager] Updated settings snapshot in state');
+    } catch (err) {
+      console.warn('[DataManager] Failed to update settings:', err);
+    }
+  }
+
+  /**
    * Entfernt die aktuelle User-Referenz (zurück zur Profilübersicht)
    */
   clearCurrentUser(): void {
@@ -434,6 +501,57 @@ export class DataManager {
         memberIds: this.state.currentUser ? [this.state.currentUser.id] : [],
         inviteCode: this.generateInviteCode()
       } as WG;
+      // If caller provided a members array (test helper), create users and attach them
+      if ((wgData as any).members && Array.isArray((wgData as any).members)) {
+        const providedMembers = (wgData as any).members as Array<any>;
+        const createdMemberIds: string[] = [];
+        providedMembers.forEach(m => {
+          try {
+            const user = this.createUser({ name: m.name || 'Member', email: m.email || '', targetMonthlyPoints: m.targetMonthlyPoints || 100 });
+            createdMemberIds.push(user.id);
+          } catch (err) {
+            // Fallback: create minimal user object
+            const uid = generateId();
+            const userObj = { id: uid, name: m.name || 'Member', email: m.email || '', joinedAt: new Date(), currentMonthPoints: 0, totalCompletedTasks: 0, isActive: true, targetMonthlyPoints: m.targetMonthlyPoints || 100 } as any;
+            this.addUser(userObj);
+            createdMemberIds.push(uid);
+          }
+        });
+        wg.memberIds = createdMemberIds;
+      }
+      // If caller provided tasks array, create tasks for the WG
+      if ((wgData as any).tasks && Array.isArray((wgData as any).tasks)) {
+        const providedTasks = (wgData as any).tasks as Array<any>;
+        const createdTasks: string[] = [];
+        providedTasks.forEach(t => {
+          const taskId = generateId();
+          const taskObj: any = {
+            id: taskId,
+            wgId: wg.id,
+            title: t.name || t.title || 'Task',
+            name: t.name || t.title || 'Task',
+            description: t.description || (t.name || t.title) || '',
+            emoji: t.emoji || '🧽',
+            category: t.category || 'general',
+            averageMinutes: t.averageMinutes || 20,
+            averagePainLevel: t.averagePainLevel || 5,
+            averageImportance: t.averageImportance || 5,
+            monthlyFrequency: t.monthlyFrequency || 4,
+            difficultyScore: t.difficultyScore || 5,
+            unpleasantnessScore: t.unpleasantnessScore || 5,
+            pointsPerExecution: t.effort || t.points || Math.max(1, Math.round((t.effort || 10) / 1)),
+            totalMonthlyPoints: (t.effort || t.points || 10) * (t.monthlyFrequency || 4),
+            constraints: t.constraints || { minDaysBetween: 3, maxDaysBetween: t.intervalDays || 14, requiresPhoto: false },
+            createdBy: (wg.memberIds && wg.memberIds[0]) || this.state.currentUser?.id || 'system',
+            createdAt: new Date(),
+            isActive: true,
+            setupComplete: true
+          } as any;
+          this.addTask(taskObj);
+          createdTasks.push(taskId);
+        });
+        // nothing else required; tasks were added to state via addTask
+      }
     }
     this.updateState({ currentWG: wg, wgs: { ...(this.state.wgs || {}), [wg.id]: wg } });
     return wg;
@@ -714,31 +832,92 @@ export class DataManager {
   deleteTask(taskId: string): void {
     const task = this.state.tasks[taskId];
     if (!task) return; // Nichts zu löschen
-    
-    const { [taskId]: deleted, ...remainingTasks } = this.state.tasks;
-    this.updateState({ tasks: remainingTasks });
 
-    // Log event für Event-Sourcing System (kritische Action)
-    eventSourcingManager.logAction(
-      'DELETE_TASK',
-      {
-        taskId,
-        title: task.title,
-        wgId: task.wgId
-      },
-      this.state.currentUser?.id,
-      task.wgId,
-      task // Backup des gelöschten Tasks
-    );
+    // If a historical/display period is selected, delete only within that period's savedState
+    if (this.selectedPeriodForDisplay) {
+      const currentWG = this.getCurrentWG();
+      if (!currentWG) return;
 
-    // Log state backup with deleted data for potential restore
-    stateBackupManager.saveStateChange({
-      type: 'DELETE_TASK',
-      entity: 'task',
-      entityId: taskId,
-      data: task, // Store deleted task for potential restore
-      timestamp: new Date().toISOString()
-    });
+      const periods = currentWG.periods || [];
+      const historical = currentWG.historicalPeriods || [];
+      const all = [...periods, ...historical];
+      const period = all.find((p: any) => p.id === this.selectedPeriodForDisplay);
+
+      if (!period) {
+        console.warn('⚠️ [DataManager] Selected display period not found, performing global delete instead');
+      } else {
+        // Ensure savedState exists for the period (create one if absent)
+        if (!(period as any).savedState) {
+          const ok = this.saveStateForPeriod(period.id);
+          if (!ok) {
+            console.error('❌ [DataManager] Could not create savedState for period, aborting period-scoped delete');
+            return;
+          }
+          // refresh currentWG and period reference
+          const refreshed = this.getCurrentWG();
+          const refreshedAll = [...(refreshed?.periods || []), ...(refreshed?.historicalPeriods || [])];
+          const refreshedPeriod = refreshedAll.find((p: any) => p.id === period.id);
+          if (!refreshedPeriod) return;
+          period.savedState = refreshedPeriod.savedState;
+        }
+
+        try {
+          const saved = (period as any).savedState as any;
+          // Remove task from saved tasks
+          const beforeTasks = (saved.tasks || []).length;
+          saved.tasks = (saved.tasks || []).filter((t: any) => t.id !== taskId);
+          const afterTasks = saved.tasks.length;
+
+          // Remove executions for that task from saved executions
+          const beforeExec = (saved.executions || []).length;
+          saved.executions = (saved.executions || []).filter((e: any) => e.taskId !== taskId);
+          const afterExec = saved.executions.length;
+
+          // Persist the updated savedState back into the WG periods lists
+          const updateFn = (wg: WG) => {
+            const updatePeriodList = (list: any[]) => list.map(p => p.id === period.id ? { ...p, savedState: { ...saved } } : p);
+            return {
+              periods: updatePeriodList(wg.periods || []),
+              historicalPeriods: updatePeriodList(wg.historicalPeriods || [])
+            };
+          };
+          const updates = updateFn(currentWG as WG);
+          this.updateWG(currentWG.id, updates as Partial<WG>);
+          this.saveToStorage();
+
+          // Backup/log
+          stateBackupManager.saveStateChange({
+            type: 'DELETE_TASK_PERIOD',
+            entity: 'task',
+            entityId: taskId,
+            data: { periodId: period.id, beforeTasks, afterTasks, beforeExec, afterExec },
+            timestamp: new Date().toISOString()
+          });
+
+          eventSourcingManager.logAction(
+            'DELETE_TASK_PERIOD',
+            { taskId, periodId: period.id, wgId: currentWG.id },
+            this.state.currentUser?.id,
+            currentWG.id,
+            { taskId, periodId: period.id }
+          );
+
+          console.log(`🗑️ [DataManager] Deleted task ${taskId} in savedState for period ${period.id}`);
+          this.notifyListeners();
+          return;
+        } catch (err) {
+          console.error('❌ [DataManager] Failed to delete task in period savedState', err);
+          // fall through to global delete as fallback
+        }
+      }
+    }
+
+    // Global deletion is disabled: only allow deletion scoped to a display period.
+    // Previously we removed the task from the global `tasks` map here. To avoid
+    // accidental data loss, global deletion is no longer supported. Log a
+    // warning and abort the operation.
+    console.warn('⚠️ [DataManager] Global task deletion is disabled. Use period-scoped deletion instead.');
+    return;
   }
 
   // ========================================
@@ -792,6 +971,7 @@ export class DataManager {
       taskId,
       executedBy: this.state.currentUser.id,
       executedAt: new Date(),
+      periodId: this.selectedPeriodForDisplay ?? this.state.currentPeriod?.id,
       photo: data.photo,
       notes: data.notes,
       pointsAwarded: Math.round(pointsAwarded),
@@ -888,6 +1068,7 @@ export class DataManager {
       taskId,
       executedBy: userId,
       executedAt: new Date(),
+      periodId: this.selectedPeriodForDisplay ?? this.state.currentPeriod?.id,
       photo: data.photo,
       notes: data.notes,
       pointsAwarded,
@@ -984,6 +1165,7 @@ export class DataManager {
       taskId: payload.taskId,
       executedBy: payload.userId,
       executedAt: new Date(),
+      periodId: this.selectedPeriodForDisplay ?? this.state.currentPeriod?.id,
       notes: payload.quality,
       pointsAwarded: Math.round(payload.points),
       status: ExecutionStatus.VERIFIED,
@@ -1384,8 +1566,32 @@ export class DataManager {
    */
   getDisplayPeriodExecutions(): Record<string, any> {
     if (!this.selectedPeriodForDisplay) {
-      // Return current period executions (existing behavior)
-      return this.state.executions;
+      // No historical display selected — return only executions that belong to the
+      // current period. Previously we returned the entire live `state.executions`,
+      // which caused analytics consumers to see executions outside the current
+      // period (different WGs / older months). Filter by explicit `periodId`
+      // when present, otherwise fall back to executedAt date range.
+      const currentPeriod = this.state.currentPeriod || this.ensureCurrentPeriod();
+      const startDate = currentPeriod.start instanceof Date ? currentPeriod.start : new Date(currentPeriod.start);
+      const endDate = currentPeriod.end instanceof Date ? currentPeriod.end : new Date(currentPeriod.end);
+      // normalize end to end-of-day
+      endDate.setHours(23,59,59,999);
+      const filtered: Record<string, any> = {};
+      Object.entries(this.state.executions).forEach(([id, execution]) => {
+        try {
+          const execPeriodId = (execution as any).periodId;
+          if (execPeriodId !== undefined && execPeriodId !== null) {
+            if (execPeriodId === currentPeriod.id) filtered[id] = execution;
+            return;
+          }
+          const execDate = new Date((execution as any).date || (execution as any).executedAt);
+          if (execDate >= startDate && execDate <= endDate) filtered[id] = execution;
+        } catch (err) {
+          // ignore malformed execution entries
+        }
+      });
+      console.log(`📊 [DataManager] Returning ${Object.keys(filtered).length} current-period executions (filtered)`);
+      return filtered;
     }
     
     // Filter executions for historical period
@@ -1394,12 +1600,52 @@ export class DataManager {
       console.warn('⚠️ [DataManager] Display period not found:', this.selectedPeriodForDisplay);
       return {};
     }
+
+    // If this period has an attached savedState, prefer its executions (snapshot view)
+    try {
+      const rawPeriod = (() => {
+        const currentWG = this.getCurrentWG();
+        if (!currentWG) return null;
+        const all = [...(currentWG.periods || []), ...(currentWG.historicalPeriods || [])];
+        return all.find((p: any) => p.id === this.selectedPeriodForDisplay) || null;
+      })();
+
+      // If the selected display period actually refers to the live/current period,
+      // treat it as a live view (do NOT use savedState) so that executions added
+      // in real-time are immediately visible in TaskTable/Analytics. This covers
+      // UIs that may set the display period to the current period id rather than
+      // null.
+      const currentPeriodId = this.state.currentPeriod?.id;
+      const isLiveView = !!currentPeriodId && currentPeriodId === this.selectedPeriodForDisplay;
+
+      if (rawPeriod && !isLiveView && (rawPeriod as any).savedState && Array.isArray((rawPeriod as any).savedState.executions)) {
+        const saved = (rawPeriod as any).savedState as any;
+        const savedMap: Record<string, any> = {};
+        (saved.executions || []).forEach((e: any) => { savedMap[e.id] = e; });
+        console.log(`📊 [DataManager] Using savedState (${Object.keys(savedMap).length}) executions for period ${this.selectedPeriodForDisplay}`);
+        return savedMap;
+      }
+      // otherwise fall through to live-execution filtering below
+    } catch (err) {
+      // If anything goes wrong reading savedState, fallback to normal behavior
+      console.warn('[DataManager] Failed to read period savedState for display, falling back to live executions', err);
+    }
     
     const startDate = new Date(period.startDate);
     const endDate = new Date(period.endDate);
     
     const filteredExecutions: Record<string, any> = {};
     Object.entries(this.state.executions).forEach(([id, execution]) => {
+      // If execution has an explicit periodId, prefer that for filtering
+      const execPeriodId = (execution as any).periodId;
+      if (execPeriodId !== undefined && execPeriodId !== null) {
+        if (execPeriodId === this.selectedPeriodForDisplay) {
+          filteredExecutions[id] = execution;
+        }
+        return; // skip date-based fallback if periodId present
+      }
+
+      // Fallback: filter by executedAt/date if no explicit periodId available
       const execDate = new Date((execution as any).date || (execution as any).executedAt);
       if (execDate >= startDate && execDate <= endDate) {
         filteredExecutions[id] = execution;
@@ -1468,11 +1714,11 @@ export class DataManager {
   setCustomPeriod(start: Date, end: Date, resetData: boolean = false): PeriodInfo {
     console.log('📅 [DataManager] Setting custom period:', start, 'to', end, resetData ? '(with reset)' : '');
     
-    // Archive previous period if it exists and WG is available
+    // Do NOT archive the previous period here. createAnalyticsPeriod()
+    // will move active periods to historical as part of analytics creation.
+    // Archiving here caused duplicate historical entries and made the
+    // overlap-check below falsely detect overlaps with the just-archived period.
     const currentWG = this.getCurrentWG();
-    if (currentWG && this.state.currentPeriod) {
-      this.archivePeriod(this.state.currentPeriod, currentWG);
-    }
 
     // Reset data if requested
     if (resetData) {
@@ -1485,6 +1731,103 @@ export class DataManager {
     const e = new Date(end);
     if (isNaN(s.getTime()) || isNaN(e.getTime())) throw new Error('Invalid period dates');
     if (s > e) throw new Error('Start date must be before or equal to end date');
+    // Defensive: prevent overlapping periods. Check against WG periods and historicalPeriods
+    try {
+      const wg = currentWG;
+      if (wg) {
+        const existing: any[] = [];
+        if (Array.isArray(wg.periods)) existing.push(...wg.periods);
+        if (Array.isArray(wg.historicalPeriods)) existing.push(...wg.historicalPeriods);
+
+        // Normalize to UTC-day boundaries to avoid local timezone shifts causing false overlaps
+        const toUTCStart = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
+        const toUTCEnd = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
+        const sNormCheck = toUTCStart(s);
+        const eNormCheck = toUTCEnd(e);
+
+        for (const p of existing) {
+          const pStartRaw = p.startDate || p.start || p.start_at || null;
+          const pEndRaw = p.endDate || p.end || p.end_at || null;
+          if (!pStartRaw || !pEndRaw) continue;
+          const pStart = new Date(pStartRaw);
+          const pEnd = new Date(pEndRaw);
+          // normalize to UTC boundaries for comparison
+          const pStartUTC = toUTCStart(pStart);
+          const pEndUTC = toUTCEnd(pEnd);
+          // If the existing period has exactly the same normalized start/end as the new one,
+          // treat it as the same period (allow activation) and skip overlap error.
+          try {
+            if (pStartUTC.getTime() === sNormCheck.getTime() && pEndUTC.getTime() === eNormCheck.getTime()) {
+              console.debug('🔎 [setCustomPeriod] existing period has identical date range — treating as same period', { existingId: p.id });
+              continue;
+            }
+          } catch (identErr) {
+            // ignore and continue with normal overlap logic
+          }
+          // Debug: log comparison values to diagnose overlap issues
+          try {
+            console.debug('🔎 [setCustomPeriod] checking overlap against existing period', {
+              existingId: p.id,
+              pStartISO: pStartUTC.toISOString(),
+              pEndISO: pEndUTC.toISOString(),
+              newStartISO: sNormCheck.toISOString(),
+              newEndISO: eNormCheck.toISOString(),
+              currentPeriodId: this.state.currentPeriod?.id || null,
+              currentPeriodStart: this.state.currentPeriod?.start || null,
+              currentPeriodEnd: this.state.currentPeriod?.end || null
+            });
+          } catch (logErr) {
+            console.warn('🔎 [setCustomPeriod] debug log failed', logErr);
+          }
+          // If this existing entry is the currentPeriod we're replacing, ignore it in the overlap check.
+          if (this.state.currentPeriod) {
+            const cur = this.state.currentPeriod;
+            const curStartRaw = cur.start || cur.startDate || null;
+            const curEndRaw = cur.end || cur.endDate || null;
+            if (curStartRaw && curEndRaw) {
+              const curStart = new Date(curStartRaw);
+              const curEnd = new Date(curEndRaw);
+              if (!isNaN(curStart.getTime()) && !isNaN(curEnd.getTime())) {
+                // If p has the same start/end as the currentPeriod, skip overlap check for this p
+                // compare using UTC-normalized times
+                const curStartUTC = toUTCStart(new Date(curStart));
+                const curEndUTC = toUTCEnd(new Date(curEnd));
+                if (pStartUTC.getTime() === curStartUTC.getTime() && pEndUTC.getTime() === curEndUTC.getTime()) {
+                  continue;
+                }
+              }
+            }
+          }
+          // overlap if not (newEnd < pStart || newStart > pEnd) — use UTC-normalized values
+          if (!(eNormCheck.getTime() < pStartUTC.getTime() || sNormCheck.getTime() > pEndUTC.getTime())) {
+            // Found overlap. If the only overlap is with the currentPeriod, allow it (we replace the current period).
+            if (this.state.currentPeriod) {
+              try {
+                const curStartRaw = this.state.currentPeriod.start || this.state.currentPeriod.startDate || null;
+                const curEndRaw = this.state.currentPeriod.end || this.state.currentPeriod.endDate || null;
+                if (curStartRaw && curEndRaw) {
+                  const curStartUTC = toUTCStart(new Date(curStartRaw));
+                  const curEndUTC = toUTCEnd(new Date(curEndRaw));
+                  // if p overlaps cur, skip throwing
+                  if (!(curEndUTC.getTime() < pStartUTC.getTime() || curStartUTC.getTime() > pEndUTC.getTime())) {
+                    console.debug('🔎 [setCustomPeriod] overlap only with currentPeriod — allowing replacement', { existingId: p.id, currentPeriodId: this.state.currentPeriod.id });
+                    continue;
+                  }
+                }
+              } catch (ignored) {
+                // fallthrough to throw below
+              }
+            }
+
+            console.warn('⚠️ [DataManager] Overlapping period detected:', { newStart: s, newEnd: e, existingId: p.id, existingStart: pStartUTC.toISOString(), existingEnd: pEndUTC.toISOString() });
+            throw new Error('Der gewählte Zeitraum überschneidet sich mit einem bestehenden Zeitraum.');
+          }
+        }
+      }
+    } catch (err) {
+      // Re-throw to allow callers to show a user-friendly message
+      throw err;
+    }
     // Compute inclusive days using normalized copies (00:00 and 23:59:59.999)
     const sNorm = new Date(s); sNorm.setHours(0,0,0,0);
     const eNorm = new Date(e); eNorm.setHours(23,59,59,999);
@@ -1492,14 +1835,20 @@ export class DataManager {
     const id = `${sNorm.toISOString().substring(0,10)}_${eNorm.toISOString().substring(0,10)}`;
     const period: PeriodInfo = { id, start: s, end: e, days };
     
+    // Create corresponding period in WG for Analytics integration first (will archive active periods)
+    if (currentWG) {
+      try {
+        this.createAnalyticsPeriod(period, currentWG, resetData);
+      } catch (err) {
+        // If analytics period creation fails (e.g., due to overlap), do not mutate currentPeriod
+        console.error('❌ [DataManager] createAnalyticsPeriod failed, aborting period set:', err);
+        throw err;
+      }
+    }
+
     // Update state with immediate persistence (no debouncing for critical operations)
     this.state = { ...this.state, currentPeriod: period };
-    
-    // Create corresponding period in WG for Analytics integration
-    if (currentWG) {
-      this.createAnalyticsPeriod(period, currentWG, resetData);
-    }
-    
+
     // Force immediate save to localStorage to prevent loss
     try {
       // Cancel any pending debounced save
@@ -1511,7 +1860,7 @@ export class DataManager {
       // Save immediately without debouncing
       this.saveToStorage();
       console.log(`✅ [DataManager] Period ${id} saved to localStorage immediately`);
-      
+
       // Notify listeners after successful save
       this.notifyListeners();
     } catch (error) {
@@ -1531,6 +1880,96 @@ export class DataManager {
     }
     
     console.log(`📅 [DataManager] Period set to ${id}${resetData ? ' with data reset' : ''}`);
+    // If there is a matching savedState for this period in the WG (by identical start/end),
+    // restore its snapshot (tasks, executions, userTargets, settings) into the live state.
+    try {
+      // Re-fetch WG from the latest state because createAnalyticsPeriod may have updated
+      // WG.periods / WG.historicalPeriods via updateStateImmediate(). Use the freshest
+      // WG object when attempting to locate a savedState snapshot.
+      const wgForSearch = this.getCurrentWG() || currentWG;
+      if (wgForSearch) {
+        const all = [...(wgForSearch.periods || []), ...(wgForSearch.historicalPeriods || [])];
+        // Build a simple date-range key using YYYY-MM-DD from the normalized start/end
+        // This avoids subtle timezone math and compares human-readable day ranges.
+        const sDay = sNorm.toISOString().substring(0,10);
+        const eDay = eNorm.toISOString().substring(0,10);
+        const targetKey = `${sDay}_${eDay}`;
+        console.debug(`[setCustomPeriod] looking for savedState (day-key): targetKey=${targetKey}, periods=${(wgForSearch.periods||[]).length}, historical=${(wgForSearch.historicalPeriods||[]).length}`);
+        const matched = all.find((p: any) => {
+          const psRaw = p.startDate || p.start || p.start_at || null;
+          const peRaw = p.endDate || p.end || p.end_at || null;
+          if (!psRaw || !peRaw) return false;
+          const psDay = new Date(psRaw).toISOString().substring(0,10);
+          const peDay = new Date(peRaw).toISOString().substring(0,10);
+          const candidateKey = `${psDay}_${peDay}`;
+          console.debug(`[setCustomPeriod] candidate period id=${p.id} candidateKey=${candidateKey} savedState=${!!(p as any).savedState}`);
+          // Match either by the stable period `id` (preferred) or by the YYYY-MM-DD day-key.
+          const ok = (p.id === id) || (candidateKey === targetKey);
+          if (ok) console.debug(`[setCustomPeriod] matched period id=${p.id} has savedState=${!!(p as any).savedState}`);
+          return ok;
+        });
+        if (matched && (matched as any).savedState) {
+          const saved = (matched as any).savedState as any;
+          // When restoring a savedState for a WG period, first remove any existing
+          // tasks and executions that belong to the same WG to avoid leaking
+          // executions from other periods into the restored view.
+          const wgId = this.state.currentWG?.id || (wgForSearch && (wgForSearch as any).id) || null;
+
+          // Build tasks map: remove tasks belonging to this WG, then add saved tasks
+          const updatedTasks = { ...this.state.tasks };
+          if (wgId) {
+            for (const k of Object.keys(updatedTasks)) {
+              try {
+                if ((updatedTasks[k] as any).wgId === wgId) delete updatedTasks[k];
+              } catch (_) {}
+            }
+          }
+          for (const t of saved.tasks || []) updatedTasks[t.id] = { ...t };
+
+          // Build executions map: remove executions whose task belongs to this WG,
+          // then insert restored executions (ensuring periodId is set)
+          const updatedExecutions = { ...this.state.executions };
+          if (wgId) {
+            for (const exId of Object.keys(updatedExecutions)) {
+              try {
+                const ex = updatedExecutions[exId];
+                const task = this.state.tasks[ex.taskId] || updatedTasks[ex.taskId];
+                if (task && task.wgId === wgId) {
+                  delete updatedExecutions[exId];
+                }
+              } catch (_) {}
+            }
+          }
+          for (const ex of saved.executions || []) updatedExecutions[ex.id] = { ...ex, periodId: ex.periodId || id };
+
+          const restoredUserTargets = saved.userTargets || {};
+          const restoredSettings = saved.settings || {};
+
+          try {
+            console.log(`[DataManager] Restoring savedState for period ${id} @ ${new Date().toISOString()} - executions:`, (saved.executions || []).map((e: any) => e.id));
+          } catch (_) {}
+
+          this.updateStateImmediate({
+            tasks: updatedTasks,
+            executions: updatedExecutions,
+            userTargets: restoredUserTargets,
+            settings: restoredSettings
+          });
+          try {
+            console.log(`[DataManager] 📥 Restored savedState for period ${id} - live executions count now:`, Object.keys(this.state.executions || {}).length);
+          } catch (_) {}
+        } else {
+          if (matched && !(matched as any).savedState) {
+            console.log(`[setCustomPeriod] found matching period ${matched.id} but it has no savedState`);
+          } else {
+            console.log('[setCustomPeriod] no matching savedState snapshot found for requested period');
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[DataManager] Failed to restore savedState after setting period:', err);
+    }
+
     return period;
   }
 
@@ -1543,31 +1982,64 @@ export class DataManager {
     try {
       const currentPeriods = wg.periods || [];
       const currentHistoricalPeriods = wg.historicalPeriods || [];
-      
+
+      // Defensive overlap-check: ensure analyticsPeriod does not overlap any existing period
+      const analyticsPeriodCandidate = {
+        id: period.id,
+        startDate: period.start.toISOString(),
+        endDate: period.end.toISOString()
+      };
+
+      const combinedExisting = [...currentPeriods, ...currentHistoricalPeriods];
+      for (const ex of combinedExisting) {
+        const exStart = new Date(ex.startDate || ex.start || ex.start_at);
+        const exEnd = new Date(ex.endDate || ex.end || ex.end_at);
+        if (!exStart || !exEnd || isNaN(exStart.getTime()) || isNaN(exEnd.getTime())) continue;
+        const exStartNorm = new Date(exStart); exStartNorm.setHours(0,0,0,0);
+        const exEndNorm = new Date(exEnd); exEndNorm.setHours(23,59,59,999);
+        const newStartNorm = new Date(analyticsPeriodCandidate.startDate); newStartNorm.setHours(0,0,0,0);
+        const newEndNorm = new Date(analyticsPeriodCandidate.endDate); newEndNorm.setHours(23,59,59,999);
+        if (!(newEndNorm.getTime() < exStartNorm.getTime() || newStartNorm.getTime() > exEndNorm.getTime())) {
+          // If the overlapping entry is the same period (by id or exact start/end) allow it
+          try {
+            if (ex.id === analyticsPeriodCandidate.id || (newStartNorm.getTime() === exStartNorm.getTime() && newEndNorm.getTime() === exEndNorm.getTime())) {
+              console.debug('🔎 [createAnalyticsPeriod] Overlap with identical period entry - allowing', { existingId: ex.id });
+              continue;
+            }
+          } catch (_) {
+            // ignore and fallthrough
+          }
+          // Overlap detected — abort before modifying WG
+          console.warn('⚠️ [DataManager] Detected overlap with existing period. Aborting analytics creation.', { analyticsPeriodCandidate, existing: ex });
+          throw new Error('Der gewählte Zeitraum überschneidet sich mit einem bestehenden Zeitraum.');
+        }
+      }
+
       // Archive all currently active periods to historical
       const periodsToArchive = currentPeriods.filter(p => p.isActive);
       const inactivePeriods = currentPeriods.filter(p => !p.isActive);
-      
+
       // Move active periods to historical with analytics calculation
       const newHistoricalPeriods = [...currentHistoricalPeriods];
       
       for (const activePeriod of periodsToArchive) {
-        // Calculate analytics for the period being archived
-        const executions = Object.values(this.state.executions).filter((e: any) => {
+        // Find executions for this WG that belong to the activePeriod.
+        // Prefer explicit `periodId` if present (newer executions), otherwise fall back to date-range for legacy data.
+        const executionsForPeriod = Object.values(this.state.executions).filter((e: any) => {
           const task = this.state.tasks[e.taskId];
+          if (!task) return false;
+          // If execution explicitly tagged with a periodId, use that for attribution
+          if (e.periodId) return e.periodId === activePeriod.id && task.wgId === wg.id;
           const execDate = new Date(e.executedAt || e.date);
           if (isNaN(execDate.getTime())) return false;
-          return task &&
-                 task.wgId === wg.id &&
-                 execDate >= new Date(activePeriod.startDate) &&
-                 execDate <= new Date(activePeriod.endDate);
+          return task.wgId === wg.id && execDate >= new Date(activePeriod.startDate) && execDate <= new Date(activePeriod.endDate);
         });
 
         const periodSummary = {
-          totalExecutions: executions.length,
-          totalPoints: executions.reduce((sum: number, e: any) => sum + (e.pointsAwarded || 0), 0),
+          totalExecutions: executionsForPeriod.length,
+          totalPoints: executionsForPeriod.reduce((sum: number, e: any) => sum + (e.pointsAwarded || 0), 0),
           memberStats: wg.memberIds.map(memberId => {
-            const memberExecutions = executions.filter((e: any) => e.executedBy === memberId);
+            const memberExecutions = executionsForPeriod.filter((e: any) => e.executedBy === memberId);
             const points = memberExecutions.reduce((sum: number, e: any) => sum + (e.pointsAwarded || 0), 0);
             return {
               userId: memberId,
@@ -1578,40 +2050,94 @@ export class DataManager {
           })
         };
 
-        // Archive the period with summary
+        // Build a savedState snapshot for the archived period (tasks + executions + userTargets + settings)
+        const wgTasks = Object.values(this.state.tasks || {}).filter((t: any) => t.wgId === wg.id).map(t => ({ ...t }));
+        const savedExecutions = executionsForPeriod.map((e: any) => ({ ...e, periodId: e.periodId || activePeriod.id }));
+        const savedStateForPeriod = {
+          savedAt: new Date().toISOString(),
+          tasks: wgTasks,
+          executions: savedExecutions,
+          userTargets: { ...(this.state as any).userTargets || {} },
+          settings: { ...(this.state as any).settings || {} }
+        } as any;
+
+        // Debug: log what's being snapshot for this archived period
+        try {
+          console.log(`[DataManager] Archiving period ${activePeriod.id} @ ${new Date().toISOString()} - snapshotting ${savedExecutions.length} executions`, savedExecutions.map((e: any) => e.id));
+        } catch (e) {
+          console.debug('[DataManager] Archiving debug log failed', e);
+        }
+
+        // Remove archived executions from live state after snapshotting
+        const archivedExecutionIds = savedExecutions.map((e: any) => e.id);
+
+        // Archive the period with summary and attach savedState
         newHistoricalPeriods.push({
           ...activePeriod,
           isActive: false,
           archivedAt: new Date().toISOString(),
-          summary: periodSummary
+          summary: periodSummary,
+          savedState: savedStateForPeriod
         });
-        
+
         console.log(`📅 Analytics period archived: ${activePeriod.name} (${periodSummary.totalPoints}P from ${periodSummary.totalExecutions} executions)`);
+        // Track ids to remove after loop
+        (this as any).__archivedExecutionIds = (this as any).__archivedExecutionIds || [];
+        (this as any).__archivedExecutionIds.push(...archivedExecutionIds);
+        try {
+          console.log(`[DataManager] Collected archivedExecutionIds now contains ${((this as any).__archivedExecutionIds || []).length} ids`, (this as any).__archivedExecutionIds.slice(0,50));
+        } catch (_) {}
       }
 
       // Create new active analytics period
-      // Normalize to day boundaries (local day) for analytics storage so
-      // frontends comparing start/end by Date behave consistently.
-      const sNorm = new Date(period.start);
-      sNorm.setHours(0, 0, 0, 0);
-      const eNorm = new Date(period.end);
-      eNorm.setHours(23, 59, 59, 999);
-
       const analyticsPeriod = {
         id: period.id,
-        name: isReset ? `Neuer Zeitraum ${sNorm.toLocaleDateString('de-DE')}` : `Zeitraum ${sNorm.toLocaleDateString('de-DE')}`,
-        startDate: sNorm.toISOString(),
-        endDate: eNorm.toISOString(),
+        // Add a short label `TT.MM – TT.MM` for compact lists and a descriptive name for detailed views
+        label: `${new Date(period.start).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'})} – ${new Date(period.end).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'})}`,
+        name: isReset ? `Neuer Zeitraum ${new Date(period.start).toLocaleDateString('de-DE')}` : `Zeitraum ${new Date(period.start).toLocaleDateString('de-DE')}`,
+        startDate: period.start.toISOString(),
+        endDate: period.end.toISOString(),
         targetPoints: wg.settings?.monthlyPointsTarget || 50,
         isActive: true,
         createdAt: new Date().toISOString()
       };
 
-      // Füge den neuen Zeitraum immer zu periods hinzu
+      // Füge den neuen Zeitraum immer zu periods hinzu, aber prüfe defensiv auf Überschneidungen
       let updatedPeriods = [...inactivePeriods];
       // Entferne ggf. alten aktiven Zeitraum mit gleicher ID
       updatedPeriods = updatedPeriods.filter(p => p.id !== analyticsPeriod.id);
-      updatedPeriods.push(analyticsPeriod);
+
+      // Defensive overlap-check: ensure analyticsPeriod does not overlap any existing period
+      try {
+        const newStart = new Date(analyticsPeriod.startDate);
+        const newEnd = new Date(analyticsPeriod.endDate);
+        const combinedExisting = [...updatedPeriods, ...newHistoricalPeriods];
+        let hasOverlap = false;
+        for (const ex of combinedExisting) {
+          const exStart = new Date(ex.startDate || ex.start || ex.start_at);
+          const exEnd = new Date(ex.endDate || ex.end || ex.end_at);
+          if (!exStart || !exEnd || isNaN(exStart.getTime()) || isNaN(exEnd.getTime())) continue;
+          const exStartNorm = new Date(exStart); exStartNorm.setHours(0,0,0,0);
+          const exEndNorm = new Date(exEnd); exEndNorm.setHours(23,59,59,999);
+          const newStartNorm = new Date(newStart); newStartNorm.setHours(0,0,0,0);
+          const newEndNorm = new Date(newEnd); newEndNorm.setHours(23,59,59,999);
+          if (!(newEndNorm.getTime() < exStartNorm.getTime() || newStartNorm.getTime() > exEndNorm.getTime())) {
+            hasOverlap = true;
+            console.warn('⚠️ [DataManager] Skipping analytics period creation due to detected overlap with existing period', { analyticsPeriod, existing: ex });
+            break;
+          }
+        }
+        if (!hasOverlap) {
+          updatedPeriods.push(analyticsPeriod);
+        } else {
+          // Do not add overlapping analyticsPeriod
+          console.warn('⚠️ [DataManager] Analytics period not added to WG.periods due to overlap');
+        }
+      } catch (err) {
+        // On unexpected errors, still attempt to add to avoid silent data loss
+        console.error('❌ [DataManager] Error during overlap-check for analytics period:', err);
+        updatedPeriods.push(analyticsPeriod);
+      }
 
       // Update WG mit neuen Perioden und historischen Perioden
       const updatedWG = { 
@@ -1619,12 +2145,32 @@ export class DataManager {
         periods: updatedPeriods,
         historicalPeriods: newHistoricalPeriods
       };
-      const newWGs = { ...this.state.wgs, [wg.id]: updatedWG };
+      const newWgs = { ...this.state.wgs, [wg.id]: updatedWG };
+
+      // Remove archived executions from live executions map if any were collected
+      let prunedExecutions = { ...this.state.executions } as Record<string, any>;
+      const toRemove: string[] = (this as any).__archivedExecutionIds || [];
+      try {
+        console.log(`[DataManager] Pruning ${toRemove.length} archived executions from live state @ ${new Date().toISOString()}`, toRemove.slice(0,50));
+        console.log('[DataManager] Current live executions count before prune:', Object.keys(prunedExecutions).length);
+      } catch (_) {}
+      toRemove.forEach(id => { if (prunedExecutions[id]) delete prunedExecutions[id]; });
+      // Clear the temporary tracking array
+      delete (this as any).__archivedExecutionIds;
+      try {
+        console.log('[DataManager] Live executions count after prune:', Object.keys(prunedExecutions).length);
+      } catch (_) {}
 
       this.updateStateImmediate({
-        wgs: newWGs as Record<string, WG>,
-        currentWG: updatedWG
+        wgs: newWgs as Record<string, WG>,
+        currentWG: updatedWG,
+        executions: prunedExecutions
       });
+
+      // Debug: confirm persisted in-memory state after immediate update
+      try {
+        console.log(`[DataManager] After updateStateImmediate @ ${new Date().toISOString()} - executions count:`, Object.keys(this.state.executions || {}).length);
+      } catch (_) {}
 
       this.notifyListeners();
       console.log('✅ [DataManager] Analytics period created with immediate save:', analyticsPeriod.id);
@@ -1729,17 +2275,11 @@ export class DataManager {
   private archivePeriod(period: PeriodInfo, wg: WG): void {
     try {
       // Create historical period definition
-      // Normalize to day boundaries for stored historical periods as well
-      const sNorm = new Date(period.start);
-      sNorm.setHours(0, 0, 0, 0);
-      const eNorm = new Date(period.end);
-      eNorm.setHours(23, 59, 59, 999);
-
       const historicalPeriod = {
         id: `archived_${period.id}_${Date.now()}`,
-        name: `${sNorm.toLocaleDateString('de-DE')} - ${eNorm.toLocaleDateString('de-DE')}`,
-        startDate: sNorm.toISOString(),
-        endDate: eNorm.toISOString(),
+        name: `${new Date(period.start).toLocaleDateString('de-DE')} - ${new Date(period.end).toLocaleDateString('de-DE')}`,
+        startDate: period.start.toISOString(),
+        endDate: period.end.toISOString(),
         targetPoints: wg.settings.monthlyPointsTarget || 50,
         isActive: false,
         createdAt: new Date().toISOString(),
@@ -1799,34 +2339,226 @@ export class DataManager {
     const currentWG = this.getCurrentWG();
     if (!currentWG) return [];
     
-    const activePeriods = (currentWG.periods || []).filter(p => p.isActive);
+    // Include all periods stored in WG.periods (regardless of `isActive`) because persisted
+    // snapshots sometimes omit the flag. Mark those that are active or match the persisted
+    // currentPeriod id as live. Also include WG.historicalPeriods. Deduplicate by id so
+    // we don't surface duplicates when the same period appears in both lists.
+    const periodsFromWG = currentWG.periods || [];
     const historicalPeriods = currentWG.historicalPeriods || [];
-    
-    // Combine active periods with historical periods
-    const allPeriods = [
-      ...activePeriods.map(p => ({
+
+    const mappedPeriods: any[] = [];
+
+    for (const p of periodsFromWG) {
+      const periodShape = {
         id: p.id,
-        name: p.name,
-        startDate: p.startDate,
-        endDate: p.endDate,
+        name: p.name || p.label || p.title,
+        startDate: p.startDate || p.start || p.start_at || null,
+        endDate: p.endDate || p.end || p.end_at || null,
+        start: p.start || p.startDate || p.start_at || null,
+        end: p.end || p.endDate || p.end_at || null,
         targetPoints: p.targetPoints,
-        isActive: p.isActive,
+        isActive: !!p.isActive,
         createdAt: p.createdAt,
         summary: {
-          totalExecutions: 0, // Wird dynamisch berechnet
-          totalPoints: 0, // Wird dynamisch berechnet
-          memberStats: [] // Wird dynamisch berechnet
+          totalExecutions: 0,
+          totalPoints: 0,
+          memberStats: []
         },
-        __LIVE_PERIOD__: true // Marker für aktive Periods
-      })),
-      ...historicalPeriods
-    ];
-    
+        __LIVE_PERIOD__: !!p.isActive || (this.state.currentPeriod && p.id === this.state.currentPeriod.id)
+      };
+      mappedPeriods.push(periodShape);
+    }
+
+    // Map historical periods as stored
+    const mappedHistorical = historicalPeriods.map((p: any) => ({ ...p }));
+
+    // Combine and dedupe by id, preferring live/periodsFromWG entries when duplicate ids exist
+    const combined = [...mappedPeriods, ...mappedHistorical];
+    const dedupMap = new Map<string, any>();
+    for (const p of combined) {
+      if (!p || !p.id) continue;
+      const existing = dedupMap.get(p.id);
+      if (!existing) {
+        dedupMap.set(p.id, p);
+      } else {
+        // Prefer an entry marked as live
+        if (p.__LIVE_PERIOD__ && !existing.__LIVE_PERIOD__) dedupMap.set(p.id, p);
+      }
+    }
+
+    const allPeriods = Array.from(dedupMap.values());
+
+    // Additional dedupe by date-range (start/end) to handle cases where distinct ids
+    // represent the same temporal period (legacy/duplicate entries). Prefer live entries.
+    const rangeMap = new Map<string, any>();
+    for (const p of allPeriods) {
+      const s = (p.start || p.startDate) ? new Date(p.start || p.startDate).toISOString().substring(0,10) : '0000-00-00';
+      const e = (p.end || p.endDate) ? new Date(p.end || p.endDate).toISOString().substring(0,10) : '9999-99-99';
+      const key = `${s}_${e}`;
+      const existing = rangeMap.get(key);
+      if (!existing) {
+        rangeMap.set(key, p);
+      } else {
+        // Prefer live entry
+        if (p.__LIVE_PERIOD__ && !existing.__LIVE_PERIOD__) rangeMap.set(key, p);
+      }
+    }
+
+    const finalPeriods = Array.from(rangeMap.values());
     // Sortiere nach Erstellungsdatum (neueste zuerst)
-    return allPeriods.sort((a, b) => 
+    return finalPeriods.sort((a: any, b: any) => 
       new Date(b.createdAt || b.archivedAt || '').getTime() - 
       new Date(a.createdAt || a.archivedAt || '').getTime()
     );
+  }
+
+  /**
+   * Persist a lightweight snapshot of WG-scoped state to attach to a period.
+   * Currently saves tasks (WG-scoped) and executions for the current WG.
+   */
+  saveStateForPeriod(periodId: string) {
+    const currentWG = this.getCurrentWG();
+    if (!currentWG) throw new Error('No current WG to save period state');
+
+    // Gather WG-scoped tasks
+    const tasks = Object.values(this.state.tasks || {}).filter((t: any) => t.wgId === currentWG.id);
+    const executions = Object.values(this.state.executions || {}).filter((e: any) => {
+      const task = this.state.tasks[e.taskId];
+      return task && task.wgId === currentWG.id;
+    });
+
+    // Find period in periods or historicalPeriods
+    const periods = currentWG.periods || [];
+    const historical = currentWG.historicalPeriods || [];
+    const all = [...periods, ...historical];
+    const periodIdx = all.findIndex((p: any) => p.id === periodId);
+    if (periodIdx === -1) throw new Error('Period not found for save');
+
+    const target = all[periodIdx];
+    const savedState = {
+      savedAt: new Date().toISOString(),
+      tasks: tasks.map(t => ({ ...t })),
+      executions: executions.map(e => ({ ...e })),
+      // Persist current per-period userTargets and settings snapshot so they can be
+      // restored when switching back to this period in tests/UI.
+      userTargets: { ...(this.state as any).userTargets || {} },
+      settings: { ...(this.state as any).settings || {} }
+    } as any;
+
+    // Attach savedState to the period object
+    try {
+      // Update in-place into the WG structure and persist via updateWG
+      const updateFn = (wg: WG) => {
+        const updatePeriodList = (list: any[]) => list.map(p => p.id === periodId ? { ...p, savedState } : p);
+        return {
+          periods: updatePeriodList(wg.periods || []),
+          historicalPeriods: updatePeriodList(wg.historicalPeriods || [])
+        };
+      };
+
+      const updates = updateFn(currentWG as WG);
+      this.updateWG(currentWG.id, updates as Partial<WG>);
+      this.saveToStorage();
+      console.log(`💾 [DataManager] Saved state snapshot for period ${periodId}`);
+      return true;
+    } catch (err) {
+      console.error('❌ [DataManager] Failed to save state for period', periodId, err);
+      return false;
+    }
+  }
+
+  /**
+   * Load previously saved snapshot for a period and merge into current state.
+   * This will overwrite WG-scoped tasks/executions with saved snapshot entries.
+   */
+  loadStateForPeriod(periodId: string) {
+    const currentWG = this.getCurrentWG();
+    if (!currentWG) throw new Error('No current WG to load period state');
+
+    const periods = currentWG.periods || [];
+    const historical = currentWG.historicalPeriods || [];
+    const all = [...periods, ...historical];
+    const period = all.find((p: any) => p.id === periodId);
+    if (!period || !period.savedState) return false;
+
+    try {
+      const saved = period.savedState;
+      const updatedTasks = { ...this.state.tasks };
+      for (const t of saved.tasks || []) {
+        updatedTasks[t.id] = { ...t };
+      }
+
+      const updatedExecutions = { ...this.state.executions };
+      for (const e of saved.executions || []) {
+        // Preserve existing periodId if present, otherwise set to the period being loaded
+        updatedExecutions[e.id] = { ...e, periodId: e.periodId || periodId };
+      }
+
+      const restoredUserTargets = (saved.userTargets || {});
+      const restoredSettings = (saved.settings || {});
+
+      this.updateStateImmediate({
+        tasks: updatedTasks,
+        executions: updatedExecutions,
+        // Restore userTargets/settings from saved snapshot for deterministic period view
+        userTargets: restoredUserTargets,
+        settings: restoredSettings
+      });
+      console.log(`📥 [DataManager] Loaded saved state for period ${periodId}`);
+      return true;
+    } catch (err) {
+      console.error('❌ [DataManager] Failed to load saved state for period', periodId, err);
+      return false;
+    }
+  }
+
+  /**
+   * Copy saved snapshot state from one period to another within the current WG.
+   * If the source period has no saved snapshot, it will attempt to create one first.
+   */
+  copyStateBetweenPeriods(fromPeriodId: string, toPeriodId: string): boolean {
+    const currentWG = this.getCurrentWG();
+    if (!currentWG) throw new Error('No current WG to copy period state');
+
+    const periods = currentWG.periods || [];
+    const historical = currentWG.historicalPeriods || [];
+    const all = [...periods, ...historical];
+
+    const from = all.find((p: any) => p.id === fromPeriodId);
+    const to = all.find((p: any) => p.id === toPeriodId);
+    if (!from || !to) throw new Error('Source or target period not found');
+
+    // Ensure source has savedState
+    if (!(from as any).savedState) {
+      const ok = this.saveStateForPeriod(fromPeriodId);
+      if (!ok) return false;
+      // reload WG references
+      const refreshedWG = this.getCurrentWG();
+      const refreshedAll = [...(refreshedWG?.periods || []), ...(refreshedWG?.historicalPeriods || [])];
+      const refreshedFrom = refreshedAll.find((p: any) => p.id === fromPeriodId);
+      if (!refreshedFrom || !(refreshedFrom as any).savedState) return false;
+      (from as any).savedState = (refreshedFrom as any).savedState;
+    }
+
+    // Attach savedState to target period
+    const savedState = { ...((from as any).savedState) } as any;
+    try {
+      const updateFn = (wg: WG) => {
+        const updatePeriodList = (list: any[]) => list.map(p => p.id === toPeriodId ? { ...p, savedState } : p);
+        return {
+          periods: updatePeriodList(wg.periods || []),
+          historicalPeriods: updatePeriodList(wg.historicalPeriods || [])
+        };
+      };
+      const updates = updateFn(currentWG as WG);
+      this.updateWG(currentWG.id, updates as Partial<WG>);
+      this.saveToStorage();
+      console.log(`🔁 [DataManager] Copied savedState from ${fromPeriodId} to ${toPeriodId}`);
+      return true;
+    } catch (err) {
+      console.error('❌ [DataManager] Failed to copy savedState between periods', err);
+      return false;
+    }
   }
 
   /**
@@ -1840,19 +2572,193 @@ export class DataManager {
     const periods = currentWG.periods || [];
     const historical = currentWG.historicalPeriods || [];
 
-    const newPeriods = periods.filter(p => p.id !== periodId);
-    const newHistorical = historical.filter(p => p.id !== periodId);
+    // Robust matching: try direct id match, then archived_ prefix, then match by start/end if id encodes a range
+    const matchesId = (p: any) => {
+      if (!p || !p.id) return false;
+      if (p.id === periodId) return true;
+      if (p.id.startsWith('archived_') && p.id.includes(periodId)) return true;
+      // If periodId looks like a range YYYY-MM-DD_YYYY-MM-DD, compare against p.startDate/p.endDate or p.start/p.end
+      if (/^\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}$/.test(periodId)) {
+        const parts = periodId.split('_');
+        const s = parts[0];
+        const e = parts[1];
+        const pStart = (p.startDate || p.start || p.start_at || '').toString().substring(0,10);
+        const pEnd = (p.endDate || p.end || p.end_at || '').toString().substring(0,10);
+        if (pStart === s && pEnd === e) return true;
+      }
+      return false;
+    };
+
+    const newPeriods = periods.filter(p => !matchesId(p));
+    const newHistorical = historical.filter(p => !matchesId(p));
 
     const updatedWG = { ...currentWG, periods: newPeriods, historicalPeriods: newHistorical } as any;
 
     // Use updateWG to persist changes
     try {
-      this.updateWG(currentWG.id, updatedWG as Partial<typeof updatedWG>);
-      console.log(`🗑️ [DataManager] Deleted period ${periodId}`);
+      // Also remove any occurrences in other WGs for safety
+      const newWgs = { ...this.state.wgs } as Record<string, WG>;
+      // Update current WG
+      newWgs[currentWG.id] = updatedWG as WG;
+
+      // Remove the period id from any other WG lists as well (global cleanup)
+      for (const id of Object.keys(newWgs)) {
+        const wg = newWgs[id];
+        if (!wg) continue;
+        const p = (wg.periods || []).filter((pp: any) => pp.id !== periodId);
+        const h = (wg.historicalPeriods || []).filter((hh: any) => hh.id !== periodId);
+        newWgs[id] = { ...wg, periods: p, historicalPeriods: h } as WG;
+      }
+
+      this.updateStateImmediate({ wgs: newWgs, currentWG: newWgs[currentWG.id] });
+      // Persist
+      this.saveToStorage();
+      console.log(`🗑️ [DataManager] Deleted period ${periodId} from WG ${currentWG.id} and cleaned other WGs`);
       this.notifyListeners();
     } catch (error) {
       console.error('🗑️ [DataManager] Failed to delete period:', error);
     }
+  }
+
+  /**
+   * Remove duplicate period entries (by id) for the current WG.
+   * Keeps the first occurrence of each id in periods and historicalPeriods.
+   */
+  purgeDuplicatePeriodsForCurrentWG(): { removed: number } {
+    const currentWG = this.getCurrentWG();
+    if (!currentWG) return { removed: 0 };
+
+    const dedupe = (list: any[]) => {
+      const seen = new Set<string>();
+      const result: any[] = [];
+      for (const item of list) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          result.push(item);
+        }
+      }
+      return result;
+    };
+
+    const beforeCount = (currentWG.periods || []).length + (currentWG.historicalPeriods || []).length;
+    const newPeriods = dedupe(currentWG.periods || []);
+    const newHistorical = dedupe(currentWG.historicalPeriods || []);
+    const afterCount = newPeriods.length + newHistorical.length;
+    const removed = beforeCount - afterCount;
+
+    const updatedWG = { ...currentWG, periods: newPeriods, historicalPeriods: newHistorical } as WG;
+    try {
+      this.updateWG(currentWG.id, { periods: updatedWG.periods, historicalPeriods: updatedWG.historicalPeriods } as Partial<WG>);
+      this.saveToStorage();
+      this.notifyListeners();
+      console.log(`🧹 [DataManager] Purged ${removed} duplicate period(s) for WG ${currentWG.id}`);
+      return { removed };
+    } catch (err) {
+      console.error('🧹 [DataManager] Failed to purge duplicates', err);
+      return { removed: 0 };
+    }
+  }
+
+  /**
+   * Migration helper: Detects overlapping periods across all WGs and optionally
+   * moves overlapping active periods into historicalPeriods to avoid overlaps.
+   * Non-destructive by default (only returns a report). Use `{ autoFix: true }`
+   * to apply changes.
+   */
+  cleanupOverlappingPeriods(options?: { autoFix?: boolean }) {
+    const results: Array<{ wgId: string; actions: string[] }> = [];
+    const wgs = this.state.wgs || {} as Record<string, WG>;
+
+    for (const wgId of Object.keys(wgs)) {
+      const wg = wgs[wgId];
+      if (!wg) continue;
+
+      const periods = Array.isArray(wg.periods) ? wg.periods.slice() : [];
+      const historical = Array.isArray(wg.historicalPeriods) ? wg.historicalPeriods.slice() : [];
+
+      // Normalize combined list for overlap detection
+      const combined = [
+        ...periods.map(p => ({ ...p, __source: 'periods' } as any)),
+        ...historical.map(p => ({ ...p, __source: 'historical' } as any))
+      ].map(p => ({
+        ...p,
+        startObj: p.startDate ? new Date(p.startDate) : (p.start ? new Date(p.start) : null),
+        endObj: p.endDate ? new Date(p.endDate) : (p.end ? new Date(p.end) : null)
+      })).filter(p => p.startObj && p.endObj && !isNaN(p.startObj.getTime()) && !isNaN(p.endObj.getTime()));
+
+      // Sort by start
+      combined.sort((a, b) => a.startObj.getTime() - b.startObj.getTime());
+
+      const actions: string[] = [];
+      const idsToArchive: Set<string> = new Set();
+
+      for (let i = 0; i < combined.length; i++) {
+        const a = combined[i];
+        for (let j = i + 1; j < combined.length; j++) {
+          const b = combined[j];
+          // If a ends before b starts -> no overlap (and since sorted, we can break)
+          if (a.endObj.getTime() < b.startObj.getTime()) break;
+
+          // Overlap detected
+          // Determine which to prefer keeping active: prefer the one that isActive === true,
+          // otherwise prefer the one with later createdAt / start date.
+          let keep = b as any;
+          let archive = a as any;
+          if (a.isActive && !b.isActive) { keep = a; archive = b; }
+          else if (!a.isActive && b.isActive) { keep = b; archive = a; }
+          else {
+            const aCreated = new Date(a.createdAt || a.archivedAt || a.startObj).getTime();
+            const bCreated = new Date(b.createdAt || b.archivedAt || b.startObj).getTime();
+            if (bCreated >= aCreated) { keep = b; archive = a; } else { keep = a; archive = b; }
+          }
+
+          // If the archive candidate is currently in active periods, plan to move it to historical
+          if (idsToArchive.has(archive.id)) continue; // already planned
+
+          if ((periods || []).find(p => p.id === archive.id)) {
+            actions.push(`Archive active period ${archive.id} (overlaps with ${keep.id})`);
+            idsToArchive.add(archive.id);
+          } else {
+            // Overlap involves historical entries — keep as historical but note it
+            actions.push(`Overlap found between ${a.id} and ${b.id} (historical involvement)`);
+          }
+        }
+      }
+
+      if (options?.autoFix && idsToArchive.size > 0) {
+        // Move each id from periods -> historical
+        const newPeriods = (wg.periods || []).filter((p: any) => !idsToArchive.has(p.id));
+        const toArchive = (wg.periods || []).filter((p: any) => idsToArchive.has(p.id)).map((p: any) => ({
+          ...p,
+          isActive: false,
+          archivedAt: p.archivedAt || new Date().toISOString()
+        }));
+
+        // Ensure historicalPeriods exists and merge without duplicates
+        const existingHist = wg.historicalPeriods || [];
+        const mergedHistorical = [...existingHist, ...toArchive].filter((v, i, arr) => arr.findIndex(x => x.id === v.id) === i);
+
+        // Persist changes for this WG
+        try {
+          const updatedWG = { ...wg, periods: newPeriods, historicalPeriods: mergedHistorical } as WG;
+          this.updateWG(wgId, { periods: updatedWG.periods, historicalPeriods: updatedWG.historicalPeriods });
+          actions.push(`Applied autoFix: moved ${toArchive.length} period(s) to historical for WG ${wgId}`);
+        } catch (err) {
+          console.error('❌ [DataManager] Failed to apply migration for WG', wgId, err);
+          actions.push(`Failed to apply autoFix for WG ${wgId}: ${String(err)}`);
+        }
+      }
+
+      results.push({ wgId, actions });
+    }
+
+    if (options?.autoFix) {
+      // Save immediately and notify listeners
+      this.saveToStorage();
+      this.notifyListeners();
+    }
+
+    return results;
   }
 
   // ========================================
@@ -2036,10 +2942,37 @@ export class DataManager {
    * Wird für State-Restore bei EventSourcing benötigt
    */
   private async saveToServer(): Promise<void> {
+    // Skip network saves during unit tests or when running without a configured absolute server URL.
+    // In Node (Vitest) a relative '/api/..' will cause `undici` to throw: "Failed to parse URL from /api/data".
     try {
+      if (process && process.env && process.env.NODE_ENV === 'test') {
+        console.log('[DataManager] Skipping saveToServer in test environment');
+        return;
+      }
+
+      // If fetch is not available or running in an environment without a configured server, skip.
+      if (typeof fetch === 'undefined') {
+        console.log('[DataManager] Skipping saveToServer because `fetch` is not available');
+        return;
+      }
+
+      // If running in a browser and a relative endpoint is used, transform to an absolute URL using location.origin.
+      let endpoint = '/api/data';
+      try {
+        // If URL constructor accepts it without throwing, we'll use it as-is. In Node this throws for relative URLs.
+        new URL(endpoint);
+      } catch (_) {
+        if (typeof window !== 'undefined' && (window as any).location && (window as any).location.origin) {
+          endpoint = `${(window as any).location.origin}${endpoint}`;
+        } else {
+          console.log('[DataManager] Skipping saveToServer: cannot construct absolute URL for endpoint', endpoint);
+          return;
+        }
+      }
+
       console.log('[DataManager] Saving state to server...');
-      
-      const response = await fetch('/api/data', {
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

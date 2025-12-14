@@ -311,24 +311,39 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ onBack, onUserSele
     // Append debug periods if debugMode
     const combined = debugMode ? [...base, ...debugHistoricalPeriods] : base;
 
-    // Deduplicate by start/end (fallback to id)
-    const seen = new Set<string>();
-    const deduped: any[] = [];
+    // Deduplicate primarily by start/end (fallback to id).
+    // If multiple entries share the same date range prefer an active/live period over archived ones.
+    const byRange = new Map<string, any>();
     combined.forEach(p => {
-      const key = `${p.startDate || p.start}-${p.endDate || p.end}-${p.id || ''}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        deduped.push(p);
+      const start = p.startDate || p.start || '';
+      const end = p.endDate || p.end || '';
+      const rangeKey = start && end ? `${start}__${end}` : (p.id || JSON.stringify(p));
+
+      if (!byRange.has(rangeKey)) {
+        byRange.set(rangeKey, p);
+        return;
+      }
+
+      // If there's already an entry for this range, prefer active/live entries
+      const existing = byRange.get(rangeKey);
+      const existingPriority = existing.isActive || existing.__LIVE_PERIOD__ ? 2 : 1;
+      const newPriority = p.isActive || p.__LIVE_PERIOD__ ? 2 : 1;
+
+      if (newPriority > existingPriority) {
+        byRange.set(rangeKey, p);
       }
     });
 
-    // Filter to match what 'Zeiträume' shows: only truly past (historical) periods.
+    const deduped = Array.from(byRange.values());
+
+    // Filter to match what 'Zeiträume' shows: include past (historical) periods
+    // and also include currently active periods so Analytics shows them too.
     // Keep debug periods visible in debug mode regardless of dates.
     const today = new Date();
     const filtered = deduped.filter((p: any) => {
       if (p.__DEBUG__) return true;
-      // If period explicitly marked active, exclude from historical list
-      if (p.isActive) return false;
+      // Include active/current periods explicitly
+      if (p.isActive || p.__LIVE_PERIOD__) return true;
       const endStr = p.endDate || p.end;
       if (!endStr) return false;
       const end = new Date(endStr);

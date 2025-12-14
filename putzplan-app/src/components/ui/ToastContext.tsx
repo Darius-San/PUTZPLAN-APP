@@ -6,13 +6,15 @@ interface ToastItem {
   id: string;
   type: ToastType;
   message: string;
+  actionLabel?: string;
+  action?: () => void;
 }
 
 interface ToastContextValue {
-  show: (type: ToastType, message: string) => string;
-  success: (message: string) => string;
-  error: (message: string) => string;
-  info: (message: string) => string;
+  show: (type: ToastType, message: string, action?: { label: string; onClick: () => void }) => string;
+  success: (message: string, action?: { label: string; onClick: () => void }) => string;
+  error: (message: string, action?: { label: string; onClick: () => void }) => string;
+  info: (message: string, action?: { label: string; onClick: () => void }) => string;
   remove: (id: string) => void;
 }
 
@@ -25,17 +27,17 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
 
-  const show = useCallback((type: ToastType, message: string) => {
+  const show = useCallback((type: ToastType, message: string, action?: { label: string; onClick: () => void }) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setToasts((t) => [...t, { id, type, message }]);
+    setToasts((t) => [...t, { id, type, message, actionLabel: action?.label, action: action?.onClick }]);
     // auto remove
-    setTimeout(() => remove(id), 4000);
+    setTimeout(() => remove(id), 6000);
     return id;
   }, [remove]);
 
-  const success = useCallback((msg: string) => show('success', msg), [show]);
-  const error = useCallback((msg: string) => show('error', msg), [show]);
-  const info = useCallback((msg: string) => show('info', msg), [show]);
+  const success = useCallback((msg: string, action?: { label: string; onClick: () => void }) => show('success', msg, action), [show]);
+  const error = useCallback((msg: string, action?: { label: string; onClick: () => void }) => show('error', msg, action), [show]);
+  const info = useCallback((msg: string, action?: { label: string; onClick: () => void }) => show('info', msg, action), [show]);
 
   return (
     <ToastContext.Provider value={{ show, success, error, info, remove }}>
@@ -49,9 +51,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             color: 'white',
             padding: '10px 14px',
             borderRadius: 8,
-            boxShadow: '0 4px 14px rgba(0,0,0,0.12)'
+            boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8
           }}>
-            {t.message}
+            <div style={{flex:1, paddingRight: 8}}>{t.message}</div>
+            {t.actionLabel && (
+              <button onClick={() => { try { t.action && t.action(); } catch (e) { console.error('Toast action failed', e); } remove(t.id); }} style={{background:'rgba(255,255,255,0.12)', color:'white', border:'none', padding:'6px 8px', borderRadius:6, cursor:'pointer'}}>
+                {t.actionLabel}
+              </button>
+            )}
           </div>
         ))}
       </div>

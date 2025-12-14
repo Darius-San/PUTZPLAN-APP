@@ -3,6 +3,7 @@ import { ModalPortal } from '../ui/ModalPortal';
 import { Card, Button } from '../ui';
 import { eventSourcingManager, StateSnapshot, ActionEvent, RestorePreview } from '../../services/eventSourcingManager';
 import { usePutzplanStore } from '../../hooks/usePutzplanStore';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface StateRestoreModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const StateRestoreModal: React.FC<StateRestoreModalProps> = ({ isOpen, on
   const [activeTab, setActiveTab] = useState<'timeline' | 'events' | 'critical'>('timeline');
   const [events, setEvents] = useState<ActionEvent[]>([]);
   const [showDetail, setShowDetail] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; title?: string; description?: string; onConfirm?: () => void }>({ isOpen: false });
   
   // Debug Mode Check
   const { debugMode } = usePutzplanStore() as any;
@@ -46,11 +48,17 @@ export const StateRestoreModal: React.FC<StateRestoreModalProps> = ({ isOpen, on
   };
 
   const handleClearTestData = () => {
-    if (confirm('🗑️ Alle Event-Sourcing Test-Daten löschen?\n\nDies entfernt alle Events und Snapshots unwiderruflich.')) {
-      eventSourcingManager.clearAllData();
-      loadData(); // Refresh UI
-      alert('✅ Test-Daten erfolgreich gelöscht');
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Alle Test-Daten löschen?',
+      description: 'Dies entfernt alle Events und Snapshots unwiderruflich.',
+      onConfirm: () => {
+        eventSourcingManager.clearAllData();
+        loadData(); // Refresh UI
+        alert('✅ Test-Daten erfolgreich gelöscht');
+        setConfirmState({ isOpen: false });
+      }
+    });
   };
 
   const handleGenerateTestData = () => {
@@ -504,6 +512,16 @@ export const StateRestoreModal: React.FC<StateRestoreModalProps> = ({ isOpen, on
           Event-Sourcing System • {events.length} Events • {snapshots.length} Snapshots
         </div>
       </Card>
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        description={confirmState.description}
+        primaryLabel="Ja"
+        secondaryLabel="Nein"
+        onPrimary={() => { confirmState.onConfirm && confirmState.onConfirm(); }}
+        onSecondary={() => setConfirmState({ isOpen: false })}
+        onClose={() => setConfirmState({ isOpen: false })}
+      />
     </ModalPortal>
   );
 };

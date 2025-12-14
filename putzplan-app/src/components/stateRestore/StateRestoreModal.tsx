@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/Card';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { ModalPortal } from '../ui/ModalPortal';
 import { eventSourcingManager, type StateSnapshot, type ActionEvent, type RestorePreview } from '../../services/eventSourcingManager';
@@ -21,6 +22,7 @@ export const StateRestoreModal: React.FC<StateRestoreModalProps> = ({ isOpen, on
   const [showConfirmRestore, setShowConfirmRestore] = useState(false);
   const [pendingRestore, setPendingRestore] = useState<StateSnapshot | null>(null);
   const [confirmText, setConfirmText] = useState('');
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; title?: string; description?: string; onConfirm?: () => void }>({ isOpen: false });
   
   const { debugMode } = usePutzplanStore();
 
@@ -65,18 +67,23 @@ export const StateRestoreModal: React.FC<StateRestoreModalProps> = ({ isOpen, on
   };
 
   const handleClearTestData = async () => {
-    if (!confirm('⚠️ Alle Event-Sourcing Daten löschen?\n\nDies löscht alle Snapshots und Events unwiderruflich!')) {
-      return;
-    }
-    
-    try {
-      await eventSourcingManager.clearAllData();
-      await loadData();
-      alert('✅ Test-Daten erfolgreich gelöscht!');
-    } catch (error) {
-      console.error('[StateRestoreModal] Failed to clear test data:', error);
-      alert('❌ Fehler beim Löschen der Test-Daten: ' + error);
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Alle Event-Sourcing Daten löschen?',
+      description: 'Dies löscht alle Snapshots und Events unwiderruflich!',
+      onConfirm: async () => {
+        try {
+          await eventSourcingManager.clearAllData();
+          await loadData();
+          alert('✅ Test-Daten erfolgreich gelöscht!');
+        } catch (error) {
+          console.error('[StateRestoreModal] Failed to clear test data:', error);
+          alert('❌ Fehler beim Löschen der Test-Daten: ' + error);
+        } finally {
+          setConfirmState({ isOpen: false });
+        }
+      }
+    });
   };
 
   const handleSnapshotSelect = async (snapshot: StateSnapshot) => {
@@ -767,6 +774,16 @@ export const StateRestoreModal: React.FC<StateRestoreModalProps> = ({ isOpen, on
           </Card>
         </div>
       </ModalPortal>
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        description={confirmState.description}
+        primaryLabel="Ja"
+        secondaryLabel="Nein"
+        onPrimary={() => { confirmState.onConfirm && confirmState.onConfirm(); }}
+        onSecondary={() => setConfirmState({ isOpen: false })}
+        onClose={() => setConfirmState({ isOpen: false })}
+      />
 
       {/* Verbessertes Bestätigungsmodal */}
       {showConfirmRestore && pendingRestore && (

@@ -134,21 +134,11 @@ describe('UI Integration Fixes Validation', () => {
     
     expect(debugCalls.length).toBeGreaterThan(0);
     
-    // Look for period in the rendered UI
-    const periodText = screen.queryByText(/19.11|19\.11|Nov|16.12|Test Period/);
-    
-    if (periodText) {
-      console.log('✅ FIXED: Period "19.11-16.12" is now visible in Analytics');
-      expect(periodText).toBeInTheDocument();
-    } else {
-      console.log('🔍 Period display elements that were found:');
-      const allTextElements = screen.getAllByText(/./);
-      allTextElements.forEach(element => {
-        if (element.textContent?.match(/period|zeitraum|19|16|nov|dec/i)) {
-          console.log('- Found period-related text:', element.textContent);
-        }
-      });
-    }
+    // Look for the specific analytics period element (use test id to avoid duplicate-text matches)
+    const periodElement = screen.getByTestId('analytics-period-test-period-id-name');
+    expect(periodElement).toBeInTheDocument();
+    expect(periodElement.textContent).toMatch(/19\.11|19\.11|Nov|16\.12|Test Period/);
+    console.log('✅ FIXED: Period "19.11-16.12" is now visible in Analytics (by test-id)');
     
     consoleSpy.mockRestore();
   });

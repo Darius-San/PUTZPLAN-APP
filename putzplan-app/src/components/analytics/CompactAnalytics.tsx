@@ -5,6 +5,7 @@ import { Bar, Pie } from 'react-chartjs-2';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, BarChart, Bar as RechartsBar } from 'recharts';
 import { usePutzplanStore } from '../../hooks/usePutzplanStore';
 import { dataManager } from '../../services/dataManager';
+import { formatShortLabel, dedupeByDate } from '../period/periodUtils';
 import { ArrowLeft } from 'lucide-react';
 import styles from './CompactAnalytics.module.css';
 
@@ -20,12 +21,21 @@ interface MonthData {
   executions: any[];
 }
 
+interface UserStat {
+  userId: string;
+  username: string;
+  totalPoints: number;
+  completedTasks: number;
+  averagePoints: number;
+}
+
 interface CompactAnalyticsProps {
   onBack?: () => void;
 }
 
 export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) => {
-  const { state, currentWG, getHistoricalPeriods } = usePutzplanStore() as any;
+  const { state, currentWG, getHistoricalPeriods, displayPeriodExecutions, getDisplayPeriod } = usePutzplanStore() as any;
+  const displayPeriodId = getDisplayPeriod && typeof getDisplayPeriod === 'function' ? getDisplayPeriod() : null;
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [chartRefreshKey, setChartRefreshKey] = useState(Date.now()); // Cache busting
   const [hiddenMonths, setHiddenMonths] = useState<Set<string>>(new Set());
@@ -40,14 +50,19 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
       console.log(`📊 [CompactAnalytics] Raw state inspection:`);
       console.log(`📊 Total executions in state: ${allExecutions.length}`);
       
-      if (allExecutions.length > 0) {
-        const sample = allExecutions[0] as any;
+      // Filter and validate executions
+      const sample = allExecutions[0] as any;
+      if (sample) {
         console.log(`📊 Sample execution structure:`, sample);
-        console.log(`📊 Sample execution fields:`, Object.keys(sample));
+        try {
+          console.log(`📊 Sample execution fields:`, Object.keys(sample));
+        } catch (_) {
+          console.log('📊 Sample execution fields: <unable to enumerate>');
+        }
         console.log(`📊 Sample pointsAwarded:`, sample.pointsAwarded);
         console.log(`📊 Sample points:`, sample.points);
       }
-      
+
       const filteredExecs = allExecutions.filter((e: any) => {
         const task = state.tasks[e.taskId];
         return task && task.wgId === currentWG.id;
@@ -86,10 +101,23 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
   const availableMonths = useMemo(() => {
     if (!currentWG) return [];
 
-    const executions = Object.values(state.executions || {}).filter((e: any) => {
-      const task = state.tasks[e.taskId];
-      return task && task.wgId === currentWG.id;
-    });
+    // Use the store-provided `displayPeriodExecutions` for the currently displayed (live) period
+    // so Analytics and TaskTable share the same source for live/current view. When a historical
+    // display period is selected, fall back to scanning `state.executions` (historical handled later).
+    const displayPeriodId = getDisplayPeriod();
+    let executions: any[] = [];
+    if (!displayPeriodId) {
+      const map = displayPeriodExecutions || {};
+      executions = Object.values(map).filter((e: any) => {
+        const task = state.tasks[e.taskId];
+        return task && task.wgId === currentWG.id;
+      });
+    } else {
+      executions = Object.values(state.executions || {}).filter((e: any) => {
+        const task = state.tasks[e.taskId];
+        return task && task.wgId === currentWG.id;
+      });
+    }
 
     console.log(`📊 [AvailableMonths] Found ${executions.length} executions for WG ${currentWG.name}`);
     console.log(`📊 [AvailableMonths] Sample executions:`, executions.slice(0, 3).map(e => ({
@@ -104,13 +132,18 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
 
     const monthsMap = new Map<string, MonthData>();
     const now = new Date();
+
     const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
 
-    // Always ensure current month is included
-    const currentMonthName = now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+    // Always ensure current month is included (short label TT.MM – TT.MM)
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const currentMonthName = formatShortLabel({ startDate: currentMonthStart.toISOString(), endDate: currentMonthEnd.toISOString() } as any);
     monthsMap.set(currentMonthKey, {
       key: currentMonthKey,
       month: currentMonthName,
+      startDate: currentMonthStart.toISOString(),
+      endDate: currentMonthEnd.toISOString(),
       year: now.getFullYear(),
       monthIndex: now.getMonth(),
       totalPoints: 0,
@@ -123,12 +156,16 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
       const year = execDate.getFullYear();
       const month = execDate.getMonth();
       const monthKey = `${year}-${month}`;
-      const monthName = execDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 0);
+      const monthName = formatShortLabel({ startDate: monthStart.toISOString(), endDate: monthEnd.toISOString() } as any);
 
       if (!monthsMap.has(monthKey)) {
         monthsMap.set(monthKey, {
           key: monthKey,
           month: monthName,
+          startDate: monthStart.toISOString(),
+          endDate: monthEnd.toISOString(),
           year,
           monthIndex: month,
           totalPoints: 0,
@@ -148,74 +185,143 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
     });
 
     // Sort by date (newest first)
-    const sortedMonths = Array.from(monthsMap.values())
-      .sort((a, b) => {
-        return b.year - a.year || b.monthIndex - a.monthIndex;
-      });
+    let combined = Array.from(monthsMap.values()).sort((a: MonthData, b: MonthData) => b.year - a.year || b.monthIndex - a.monthIndex);
 
     // Also include custom historical periods from the store (if any)
     try {
       const historical = dataManager.getHistoricalPeriods();
       if (Array.isArray(historical) && historical.length > 0) {
+        const histItems: any[] = [];
         historical.forEach((p: any) => {
           try {
-            // Support multiple possible field names used by DataManager: start/startDate
             const rawStart = p.start || p.startDate || p.startAt || p.startISO || p.startTimestamp;
             const rawEnd = p.end || p.endDate || p.endAt || p.endISO || p.endTimestamp;
             const start = rawStart ? new Date(rawStart) : new Date(NaN);
             const end = rawEnd ? new Date(rawEnd) : new Date(NaN);
-
             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
               console.warn('[CompactAnalytics] Skipping historical period with invalid dates', p);
               return;
             }
-            // Collect executions inside this period for the current WG
-            const periodExecs = Object.values(state.executions || {}).filter((ex: any) => {
-              const task = state.tasks[ex.taskId];
-              if (!task || task.wgId !== currentWG.id) return false;
-              const d = new Date(ex.executedAt || ex.date);
-              return d >= start && d <= end;
-            });
+
+            // Prefer using a period's savedState snapshot if present — this keeps
+            // analytics consistent with the TaskTable view which reads savedState
+            // when displaying historical periods. Fall back to scanning global
+            // state.executions for legacy data.
+            let periodExecs: any[] = [];
+            try {
+              if (p && (p as any).savedState && Array.isArray((p as any).savedState.executions)) {
+                periodExecs = (p as any).savedState.executions.filter((ex: any) => {
+                  const task = state.tasks[ex.taskId] || null;
+                  // If the saved snapshot contains tasks without matching live tasks,
+                  // include them anyway as they are part of the archived snapshot.
+                  return !task || task.wgId === currentWG.id;
+                });
+              } else {
+                periodExecs = Object.values(state.executions || {}).filter((ex: any) => {
+                  const task = state.tasks[ex.taskId];
+                  if (!task || task.wgId !== currentWG.id) return false;
+
+                  // Prefer explicit period binding when present (newer executions)
+                  if (ex.periodId !== undefined && ex.periodId !== null) {
+                    return ex.periodId === p.id;
+                  }
+
+                  // Fallback for legacy executions without periodId: use executedAt/date range
+                  const d = new Date(ex.executedAt || ex.date);
+                  return d >= start && d <= end;
+                });
+              }
+            } catch (err) {
+              console.warn('[CompactAnalytics] Failed to read savedState for period, falling back to live executions', err);
+              periodExecs = Object.values(state.executions || {}).filter((ex: any) => {
+                const task = state.tasks[ex.taskId];
+                if (!task || task.wgId !== currentWG.id) return false;
+                if (ex.periodId !== undefined && ex.periodId !== null) return ex.periodId === p.id;
+                const d = new Date(ex.executedAt || ex.date);
+                return d >= start && d <= end;
+              });
+            }
 
             const totalPoints = periodExecs.reduce((sum: number, ex: any) => sum + (ex.pointsAwarded || 0), 0);
             const completedTasks = periodExecs.length;
+            const label = formatShortLabel({ startDate: start.toISOString(), endDate: end.toISOString() } as any) || p.name;
 
-            const label = p.name || `${start.getDate()}.${start.getMonth() + 1} - ${end.getDate()}.${end.getMonth() + 1}`;
+            // Determine task count for this period: count tasks that actually have
+            // at least one execution in the snapshot (i.e. "abgehakte" tasks)
+            let taskCount = 0;
+            try {
+              if (Array.isArray(periodExecs) && periodExecs.length > 0) {
+                taskCount = Array.from(new Set((periodExecs || []).map((ex: any) => ex.taskId))).filter(Boolean).length;
+              } else if (p && (p as any).savedState && Array.isArray((p as any).savedState.tasks)) {
+                // Fallback: if there are no executions, fall back to counting tasks in snapshot
+                taskCount = (p as any).savedState.tasks.filter((t: any) => !t.wgId || t.wgId === currentWG.id).length;
+              } else {
+                taskCount = 0;
+              }
+            } catch (err) {
+              taskCount = Array.from(new Set((periodExecs || []).map((ex: any) => ex.taskId))).filter(Boolean).length;
+            }
 
-            // Use a distinct key for periods so they don't collide with month keys
-            sortedMonths.unshift({
+            histItems.push({
+              id: p.id,
               key: `period-${p.id}`,
               month: label,
+              startDate: start.toISOString(),
+              endDate: end.toISOString(),
               year: start.getFullYear(),
               monthIndex: start.getMonth(),
               totalPoints,
               completedTasks,
-              executions: periodExecs
+              taskCount,
+              executions: periodExecs,
+              isHistorical: true
             });
           } catch (err) {
             console.warn('[CompactAnalytics] Failed to process historical period', p, err);
           }
         });
+
+        // Prepend historical items so they appear before months
+        combined = [...histItems, ...combined];
       }
     } catch (err) {
       console.warn('[CompactAnalytics] getHistoricalPeriods failed', err);
     }
 
-    console.log(`📊 [AvailableMonths] Generated ${sortedMonths.length} months:`, sortedMonths.map(m => `${m.month}: ${m.totalPoints}P`));
+    // For regular months (not historical periods) compute taskCount = unique tasks referenced by executions
+    combined = combined.map((m: any) => {
+      try {
+        if (!m.isHistorical) {
+          m.taskCount = Array.from(new Set((m.executions || []).map((e: any) => e.taskId))).filter(Boolean).length;
+        }
+      } catch (err) {
+        m.taskCount = m.taskCount || 0;
+      }
+      return m;
+    });
 
-    // Auto-expand current month
-    if (expandedMonth === null && sortedMonths.length > 0) {
-      // Instead of current month, find the month with the most data
-      const monthWithMostData = sortedMonths.reduce((best, current) => 
-        current.totalPoints > best.totalPoints ? current : best
-      );
-      
-      console.log(`📊 [AvailableMonths] Auto-selecting month with most data: ${monthWithMostData.month} (${monthWithMostData.totalPoints}P)`);
-      setExpandedMonth(monthWithMostData.key);
+    // Deduplicate by start/end date (prefer live/active periods)
+    try {
+      combined = dedupeByDate(combined as any) as any[];
+    } catch (err) {
+      console.warn('[CompactAnalytics] dedupe failed', err);
     }
 
-    return sortedMonths;
+    console.log(`📊 [AvailableMonths] Generated ${combined.length} months:`, combined.map(m => `${m.month}: ${m.totalPoints}P`));
+
+    return combined;
   }, [state, currentWG, expandedMonth]);
+
+  // Ensure we don't set state inside useMemo; set initial expanded month here when availableMonths changes
+  React.useEffect(() => {
+    if (expandedMonth !== null) return;
+    if (availableMonths.length === 0) return;
+    // Prefer the month with the most data
+    const monthWithMostData = availableMonths.reduce((best: any, current: any) =>
+      current.totalPoints > (best?.totalPoints || 0) ? current : best
+    , availableMonths[0]);
+    setExpandedMonth(monthWithMostData.key);
+  }, [availableMonths]);
 
   // Filter out hidden months
   const visibleMonths = availableMonths.filter(month => !hiddenMonths.has(month.key));
@@ -333,27 +439,9 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
     setShowRestoreModal(false);
   };
 
-  if (!currentWG) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.emptyState}>
-          <h2>📊 Analytics</h2>
-          <p>Keine WG ausgewählt</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (visibleMonths.length === 0) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.emptyState}>
-          <h2>📊 Analytics</h2>
-          <p>Noch keine Daten verfügbar</p>
-        </div>
-      </div>
-    );
-  }
+  // Note: Do not return early here — keep hooks (useMemo/useEffect) declarations
+  // above this point to ensure hook call order remains stable across renders.
+  // Empty-state rendering is handled later in the main JSX return.
 
   const expandedMonthData = visibleMonths.find(m => m.key === expandedMonth);
   
@@ -413,7 +501,7 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
       };
       
       // Initialize each user's points to 0
-      expandedAnalytics.userStats.forEach(userStat => {
+      expandedAnalytics.userStats.forEach((userStat: UserStat) => {
         dataPoint[userStat.username] = 0;
       });
       
@@ -440,7 +528,7 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
         return;
       }
       
-      const userStat = expandedAnalytics.userStats.find(us => us.userId === userId);
+      const userStat = expandedAnalytics.userStats.find((us: UserStat) => us.userId === userId);
       if (!userStat) {
         console.warn(`📊 [TimelineData] UserStat not found for user ${user.name} (${userId})`);
         return;
@@ -459,7 +547,7 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
     const userCumulative: Record<string, number> = {};
     
     // Initialize cumulative counters
-    expandedAnalytics.userStats.forEach(userStat => {
+    expandedAnalytics.userStats.forEach((userStat: UserStat) => {
       userCumulative[userStat.username] = 0;
     });
     
@@ -467,7 +555,7 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
     const cumulativeTimeline = timeline.map((day, index) => {
       const result = { ...day };
       
-      expandedAnalytics.userStats.forEach(userStat => {
+      expandedAnalytics.userStats.forEach((userStat: UserStat) => {
         const dailyPoints = day[userStat.username] || 0;
         userCumulative[userStat.username] += dailyPoints;
         result[userStat.username] = userCumulative[userStat.username];
@@ -488,6 +576,92 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
     
     return cumulativeTimeline;
   }, [expandedAnalytics, expandedMonthData, state.users]);
+
+  // Compute analytics + timeline for an arbitrary monthData (used per-month when rendering)
+  const computeMonthAnalytics = (monthData: any) => {
+    if (!currentWG || !monthData) return null;
+
+    // Build user list from WG members plus any user IDs referenced in executions
+    const memberIds = Array.isArray(currentWG.memberIds) ? [...currentWG.memberIds] : [];
+    const execUserIds = Array.from(new Set((monthData.executions || []).map((e: any) => e.executedBy).filter(Boolean)));
+    const allUserIds = Array.from(new Set([...memberIds, ...execUserIds]));
+
+    const users = allUserIds.map((id: string) => {
+      const u = state.users[id];
+      if (u) return u;
+      // Fallback placeholder for executions that reference users not present in state
+      return { id, name: `User ${String(id).slice(0,6)}`, username: `User ${String(id).slice(0,6)}` } as any;
+    }).filter(Boolean) || [];
+
+    const userStats = users.map((user: any) => {
+      const userExecutions = (monthData.executions || []).filter((e: any) => e.executedBy === user.id);
+      const totalPoints = userExecutions.reduce((sum: number, e: any) => sum + (e.pointsAwarded || 0), 0);
+      const completedTasks = userExecutions.length;
+      const averagePoints = completedTasks > 0 ? totalPoints / completedTasks : 0;
+      return {
+        userId: user.id,
+        username: user.name || user.username || `User ${user.id}`,
+        totalPoints,
+        completedTasks,
+        averagePoints
+      };
+    }).sort((a, b) => b.totalPoints - a.totalPoints);
+
+    const analytics = {
+      totalPoints: monthData.totalPoints || 0,
+      completedTasks: monthData.completedTasks || 0,
+      userStats
+    };
+
+    // Build timeline similar to timelineData useMemo
+    const executions = monthData.executions || [];
+    const validExecutions = executions.filter((execution: any) => {
+      const hasValidDate = execution.executedAt || execution.date;
+      const hasValidUser = execution.executedBy || execution.userId;
+      return !!hasValidDate && !!hasValidUser;
+    });
+
+    const timelineMap = new Map<string, any>();
+    const startDate = monthData.startDate ? new Date(monthData.startDate) : new Date(monthData.year, monthData.monthIndex, 1);
+    const endDate = monthData.endDate ? new Date(monthData.endDate) : new Date(monthData.year, monthData.monthIndex + 1, 0);
+    const today = new Date();
+    const actualEndDate = endDate > today ? today : endDate;
+
+    for (let d = new Date(startDate); d <= actualEndDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const dataPoint: any = { date: `${d.getDate()}.${d.getMonth() + 1}`, originalDate: dateStr };
+      analytics.userStats.forEach((userStat: UserStat) => { dataPoint[userStat.username] = 0; });
+      timelineMap.set(dateStr, dataPoint);
+    }
+
+    validExecutions.forEach((execution: any) => {
+      const execDate = new Date(execution.executedAt || execution.date);
+      const dateStr = `${execDate.getFullYear()}-${String(execDate.getMonth() + 1).padStart(2, '0')}-${String(execDate.getDate()).padStart(2, '0')}`;
+      const dataPoint = timelineMap.get(dateStr);
+      if (!dataPoint) return;
+      const userId = execution.executedBy || execution.userId;
+      const userStat = analytics.userStats.find((us: UserStat) => us.userId === userId);
+      if (!userStat) return;
+      const points = execution.pointsAwarded || 0;
+      dataPoint[userStat.username] = (dataPoint[userStat.username] || 0) + points;
+    });
+
+    const timeline = Array.from(timelineMap.values()).sort((a, b) => new Date(a.originalDate).getTime() - new Date(b.originalDate).getTime());
+    const userCumulative: Record<string, number> = {};
+    analytics.userStats.forEach((userStat: UserStat) => { userCumulative[userStat.username] = 0; });
+
+    const cumulativeTimeline = timeline.map((day: any) => {
+      const result = { ...day };
+      analytics.userStats.forEach((userStat: UserStat) => {
+        const dailyPoints = day[userStat.username] || 0;
+        userCumulative[userStat.username] += dailyPoints;
+        result[userStat.username] = userCumulative[userStat.username];
+      });
+      return result;
+    });
+
+    return { analytics, timeline: cumulativeTimeline };
+  };
   
   // Task Progress Data - Säulendiagramm für Task-Häufigkeiten
   const taskProgressData = useMemo(() => {
@@ -565,13 +739,48 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
     return chartData;
   })() : null;
 
-  return (
+    // Now that all hooks and memos are declared, we can safely return early for empty states.
+    if (!currentWG) {
+      return (
+        <div className={styles.container}>
+          <div className={styles.emptyState}>
+            <h2>📊 Analytics</h2>
+            <p>Keine WG ausgewählt</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (visibleMonths.length === 0) {
+      return (
+        <div className={styles.container}>
+          <div className={styles.emptyState}>
+            <h2>📊 Analytics</h2>
+            <p>Noch keine Daten verfügbar</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
     <div className={styles.container}>
       <div className={styles.header}>
-        {onBack && (
+        {(onBack || displayPeriodId == null) && (
           <button 
             className={styles.backButton}
-            onClick={onBack}
+            onClick={() => {
+              if (onBack) return onBack();
+              // If no onBack provided, fallback to clearing display period so
+              // the app shows the current/live period (acts as a "Zurück").
+              try {
+                dataManager.setDisplayPeriod(null);
+                // Also ensure currentPeriod exists
+                dataManager.ensureCurrentPeriod();
+                console.log('🔙 [CompactAnalytics] Fallback back action: cleared display period');
+              } catch (err) {
+                console.warn('🔙 [CompactAnalytics] Failed to perform fallback back action', err);
+              }
+            }}
             aria-label="Zurück"
           >
             <ArrowLeft size={20} />
@@ -627,6 +836,44 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
       <div className={styles.monthTabs} data-testid="analytics-periods">
         {visibleMonths.map((monthData) => {
           const isExpanded = expandedMonth === monthData.key;
+          const localView = isExpanded ? computeMonthAnalytics(monthData) : null;
+          const localTaskProgressData = isExpanded ? (() => {
+            const executions = monthData.executions || [];
+            const taskCounts = new Map<string, number>();
+            executions.forEach((execution: any) => {
+              const task = state.tasks[execution.taskId];
+              if (task) taskCounts.set(task.id, (taskCounts.get(task.id) || 0) + 1);
+            });
+            const taskData = Object.values(state.tasks || {})
+              .filter((task: any) => task.wgId === state.currentWG?.id)
+              .map((task: any) => {
+                const actualCount = taskCounts.get(task.id) || 0;
+                const daysInMonth = 30;
+                const expectedFreq = task.constraints?.maxDaysBetween ? Math.floor(daysInMonth / task.constraints.maxDaysBetween) : 4;
+                return {
+                  taskName: task.title?.length > 15 ? task.title.substring(0, 15) + '...' : task.title,
+                  actual: actualCount,
+                  expected: expectedFreq,
+                  percentage: expectedFreq > 0 ? Math.min(100, (actualCount / expectedFreq) * 100) : 0
+                };
+              })
+              .sort((a, b) => b.percentage - a.percentage);
+            return taskData;
+          })() : [];
+          const localChartData = isExpanded && localView ? (() => {
+            const sortedUserStats = [...localView.analytics.userStats].sort((a: any, b: any) => (b.totalPoints || 0) - (a.totalPoints || 0));
+            return {
+              labels: sortedUserStats.map((u: any) => u.username),
+              datasets: [{
+                label: 'Punkte',
+                data: sortedUserStats.map((u: any) => u.totalPoints),
+                backgroundColor: generateColors(sortedUserStats.length),
+                borderWidth: 2,
+                borderColor: '#fff',
+                userStatsRef: sortedUserStats
+              }]
+            };
+          })() : null;
           return (
             <div key={monthData.key} className={styles.monthTab} data-testid={monthData.key.startsWith('period-') ? `analytics-period-${monthData.key.replace('period-', '')}` : `analytics-month-${monthData.key}`}>
               <button 
@@ -658,8 +905,10 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
                   <div className={styles.monthSummary}>
                     <span data-testid={`${monthData.key.startsWith('period-') ? `analytics-period-${monthData.key.replace('period-', '')}-totalPoints` : `analytics-month-${monthData.key}-totalPoints`}`}>{monthData.totalPoints}P</span>
                     <span>•</span>
-                    <span data-testid={`${monthData.key.startsWith('period-') ? `analytics-period-${monthData.key.replace('period-', '')}-completed` : `analytics-month-${monthData.key}-completed`}`}>{monthData.completedTasks} Tasks</span>
-                    {monthData.completedTasks === 0 && (
+                    {/* Prefer explicit taskCount when available (historical period snapshots),
+                        otherwise fall back to completedTasks (executions count) */}
+                    <span data-testid={`${monthData.key.startsWith('period-') ? `analytics-period-${monthData.key.replace('period-', '')}-completed` : `analytics-month-${monthData.key}-completed`}`}>{typeof (monthData as any).taskCount === 'number' ? (monthData as any).taskCount : monthData.completedTasks} Tasks</span>
+                    {((typeof (monthData as any).taskCount === 'number' ? (monthData as any).taskCount : monthData.completedTasks) === 0) && (
                       <span style={{ color: '#999', fontSize: '0.8rem' }}>(leer)</span>
                     )}
                   </div>
@@ -700,27 +949,28 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
                 </div>
               </button>
               
-              {isExpanded && expandedMonthData && expandedAnalytics && (
+              {isExpanded && localView && (
                 <div className={styles.monthContent}>
                   {/* Compact Stats */}
                   <div className={styles.compactStats}>
                     <div className={styles.compactStatCard}>
                       <span className={styles.compactStatLabel}>💰 Gesamtpunkte</span>
-                      <span className={styles.compactStatValue}>{expandedAnalytics.totalPoints}P</span>
+                      <span className={styles.compactStatValue}>{localView.analytics.totalPoints}P</span>
                     </div>
                     <div className={styles.compactStatCard}>
                       <span className={styles.compactStatLabel}>✅ Tasks erledigt</span>
-                      <span className={styles.compactStatValue}>{expandedAnalytics.completedTasks}</span>
+                      <span className={styles.compactStatValue}>{localView.analytics.completedTasks}</span>
                     </div>
                   </div>
 
                   {/* Charts */}
-                  {timelineData && timelineData.length > 0 && expandedAnalytics.userStats.length > 0 && (
+                  {/* Render charts when we have timeline/userStats; otherwise show a friendly placeholder */}
+                  {localView && localView.timeline && localView.timeline.length > 0 && localView.analytics.userStats.length > 0 ? (
                     <div className={styles.chartsSection}>
                       <div className={styles.chartContainer}>
                         <h3>📈 Progress</h3>
                         <ResponsiveContainer width="100%" height={300}>
-                          <LineChart data={timelineData} key={`line-chart-${chartRefreshKey}`}>
+                          <LineChart data={localView.timeline} key={`line-chart-${chartRefreshKey}`}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis 
                               dataKey="date" 
@@ -769,10 +1019,10 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
                             />
                             
                             {/* Member Lines */}
-                            {expandedAnalytics.userStats.map((userStat: any, index: number) => {
-                              const colors = generateColors(expandedAnalytics.userStats.length);
+                            {localView.analytics.userStats.map((userStat: any, index: number) => {
+                              const colors = generateColors(localView.analytics.userStats.length);
                               console.log(`📊 [Chart] Rendering line for ${userStat.username} with dataKey "${userStat.username}"`);
-                              console.log(`📊 [Chart] Sample timeline data for user:`, timelineData.slice(0, 3).map(d => ({ date: d.date, [userStat.username]: d[userStat.username] })));
+                              console.log(`📊 [Chart] Sample timeline data for user:`, localView.timeline.slice(0, 3).map((d: any) => ({ date: d.date, [userStat.username]: d[userStat.username] })));
                               return (
                                 <Line
                                   key={userStat.userId}
@@ -794,8 +1044,8 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
                       {/* Task Progress Chart */}
                       <div className={styles.chartContainer}>
                         <h3>⏳ Task-Fortschritt</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={taskProgressData} key={`task-progress-${chartRefreshKey}`}>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={localTaskProgressData} key={`task-progress-${chartRefreshKey}`}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                             <XAxis 
                               dataKey="taskName" 
@@ -861,12 +1111,12 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
                         </div>
                       </div>
                       
-                      {chartData && (
+                      {localChartData && (
                         <div className={styles.chartContainer}>
                           <h3>🍰 Gesamtpunkte Verteilung</h3>
                           <Pie 
                             key={`pie-chart-${chartRefreshKey}`}
-                            data={chartData}
+                            data={localChartData}
                             options={{
                               responsive: true,
                               plugins: {
@@ -977,6 +1227,11 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
                         </div>
                       )}
                     </div>
+                  ) : (
+                    <div style={{ padding: '24px', background: '#fff7ed', borderRadius: 8, border: '1px solid #fdeacc', color: '#92400e' }}>
+                      <h4 style={{ margin: 0, fontSize: '16px' }}>Keine Diagrammdaten</h4>
+                      <p style={{ margin: '8px 0 0 0', color: '#92400e' }}>Für diesen Zeitraum sind derzeit keine ausreichenden Daten vorhanden, um Diagramme anzuzeigen.</p>
+                    </div>
                   )}
 
                   {/* User Stats */}
@@ -984,7 +1239,7 @@ export const CompactAnalytics: React.FC<CompactAnalyticsProps> = ({ onBack }) =>
                     <div className={styles.userStatsSection}>
                       <h3>Benutzer-Details</h3>
                       <div className={styles.userStatsCompact}>
-                        {expandedAnalytics.userStats.map((userStat) => (
+                        {expandedAnalytics.userStats.map((userStat: UserStat) => (
                           <div key={userStat.userId} className={styles.userStatCompact}>
                             <span className={styles.userName} data-testid="user-name">{userStat.username}</span>
                             <div className={styles.userStatNumbers}>
